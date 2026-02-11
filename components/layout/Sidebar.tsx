@@ -31,6 +31,11 @@ export default function Sidebar({ isOpen, onToggle }: Props) {
       icon: LayoutDashboard,
     },
     {
+      name: 'Custom Canvas',
+      href: '/canvas',
+      icon: LayoutGrid,
+    },
+    {
       name: 'Workspace',
       href: '/workspace',
       icon: LayoutDashboard,

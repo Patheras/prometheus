@@ -1,134 +1,251 @@
 'use client'
-import { useState, useEffect } from 'react'
-import AppLayout from '@/components/layout/AppLayout'
-import Canvas, { WidgetConfig } from '@/components/canvas/Canvas'
-import DashboardLibrary, { WidgetType } from '@/components/canvas/DashboardLibrary'
-import { renderWidget } from '@/components/widgets/WidgetRegistry'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Activity,
+  Code,
+  Database,
+  Zap,
+  GitBranch,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+  LayoutGrid,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { LayoutGrid, Library } from 'lucide-react'
+import AppLayout from '@/components/layout/AppLayout'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+
+interface Stats {
+  repositories: number
+  codeQuality: number
+  activeTasks: number
+  memoryUsage: string
+  chunksIndexed: number
+}
+
+interface ActivityItem {
+  type: 'success' | 'warning' | 'info'
+  message: string
+  time: string
+}
 
 export default function DashboardPage() {
-  const [widgets, setWidgets] = useState<WidgetConfig[]>([])
-  const [showLibrary, setShowLibrary] = useState(false)
-  const [editMode, setEditMode] = useState(true)
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Load widgets from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('prometheus-dashboard-widgets')
-    if (saved) {
+    async function fetchData() {
       try {
-        setWidgets(JSON.parse(saved))
+        const [statsRes, activityRes] = await Promise.all([
+          fetch('/api/stats'),
+          fetch('/api/activity'),
+        ])
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          setStats(statsData)
+        }
+
+        if (activityRes.ok) {
+          const activityData = await activityRes.json()
+          setActivities(activityData.activities || [])
+        }
       } catch (error) {
-        console.error('Failed to load widgets:', error)
+        console.error('Failed to fetch dashboard data:', error)
+      } finally {
+        setLoading(false)
       }
-    } else {
-      // Default widgets
-      setWidgets([
-        {
-          id: 'repo-status-1',
-          type: 'repository-status',
-          title: 'Repository Status',
-          layout: { i: 'repo-status-1', x: 0, y: 0, w: 4, h: 2 },
-        },
-        {
-          id: 'metrics-1',
-          type: 'metrics-chart',
-          title: 'Code Quality Metrics',
-          layout: { i: 'metrics-1', x: 4, y: 0, w: 8, h: 3 },
-        },
-        {
-          id: 'consultation-1',
-          type: 'consultation-list',
-          title: 'Pending Consultations',
-          layout: { i: 'consultation-1', x: 0, y: 2, w: 6, h: 3 },
-        },
-      ])
     }
+
+    fetchData()
   }, [])
 
-  // Save widgets to localStorage
-  const handleLayoutChange = (updatedWidgets: WidgetConfig[]) => {
-    setWidgets(updatedWidgets)
-    localStorage.setItem('prometheus-dashboard-widgets', JSON.stringify(updatedWidgets))
-  }
-
-  const handleAddWidget = (widgetType: WidgetType) => {
-    const newWidget: WidgetConfig = {
-      id: `${widgetType.id}-${Date.now()}`,
-      type: widgetType.id,
-      title: widgetType.name,
-      layout: {
-        i: `${widgetType.id}-${Date.now()}`,
-        x: 0,
-        y: Infinity, // Add to bottom
-        w: widgetType.defaultSize.w,
-        h: widgetType.defaultSize.h,
-      },
-    }
-
-    const updatedWidgets = [...widgets, newWidget]
-    setWidgets(updatedWidgets)
-    localStorage.setItem('prometheus-dashboard-widgets', JSON.stringify(updatedWidgets))
-    setShowLibrary(false)
-  }
-
-  const handleRemoveWidget = (id: string) => {
-    const updatedWidgets = widgets.filter((w) => w.id !== id)
-    setWidgets(updatedWidgets)
-    localStorage.setItem('prometheus-dashboard-widgets', JSON.stringify(updatedWidgets))
-  }
+  const statCards = [
+    {
+      name: 'Repositories',
+      value: stats?.repositories?.toString() || '0',
+      change: '+1 this week',
+      icon: GitBranch,
+      color: 'text-blue-400',
+    },
+    {
+      name: 'Code Quality',
+      value: stats?.codeQuality ? `${stats.codeQuality}%` : '0%',
+      change: '+5% from last week',
+      icon: Code,
+      color: 'text-emerald-400',
+    },
+    {
+      name: 'Active Tasks',
+      value: stats?.activeTasks?.toString() || '0',
+      change: '4 pending approval',
+      icon: Activity,
+      color: 'text-amber-400',
+    },
+    {
+      name: 'Memory Usage',
+      value: stats?.memoryUsage || '0 GB',
+      change: stats?.chunksIndexed ? `${stats.chunksIndexed.toLocaleString()} chunks indexed` : '0 chunks indexed',
+      icon: Database,
+      color: 'text-purple-400',
+    },
+  ]
 
   return (
     <AppLayout>
-      <div className="h-screen flex flex-col">
+      <div className="p-8 space-y-8">
         {/* Header */}
-        <div className="p-6 border-b border-white/[0.08] flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Dashboard</h1>
-            <p className="text-sm text-zinc-400">
-              Customize your workspace with widgets
+            <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+            <p className="text-zinc-400">
+              Monitor Prometheus activity and system health
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={editMode ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setEditMode(!editMode)}
-            >
+          <Link href="/canvas">
+            <Button variant="outline">
               <LayoutGrid className="h-4 w-4 mr-2" />
-              {editMode ? 'Lock Layout' : 'Edit Layout'}
+              Custom Canvas
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowLibrary(!showLibrary)}
-            >
-              <Library className="h-4 w-4 mr-2" />
-              Widget Library
-            </Button>
-          </div>
+          </Link>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Canvas */}
-          <div className="flex-1 p-6 overflow-auto">
-            <Canvas
-              widgets={widgets}
-              onLayoutChange={handleLayoutChange}
-              onRemoveWidget={handleRemoveWidget}
-              renderWidget={renderWidget}
-              editable={editMode}
-            />
-          </div>
-
-          {/* Library Sidebar */}
-          {showLibrary && (
-            <div className="w-80 border-l border-white/[0.08] bg-[#0A0A0B]">
-              <DashboardLibrary onAddWidget={handleAddWidget} />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {loading ? (
+            <div className="col-span-4 text-center text-zinc-400 py-8">
+              Loading stats...
             </div>
+          ) : (
+            statCards.map((stat) => (
+              <Card key={stat.name} className="hover:border-[#5E6AD2]/40 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-zinc-400">
+                    {stat.name}
+                  </CardTitle>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+                  <p className="text-xs text-zinc-500">{stat.change}</p>
+                </CardContent>
+              </Card>
+            ))
           )}
         </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Activity */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest events from Prometheus</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {activities.length === 0 ? (
+                  <div className="text-center text-zinc-400 py-4">
+                    No recent activity
+                  </div>
+                ) : (
+                  activities.map((activity, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors"
+                    >
+                      {activity.type === 'success' && (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      )}
+                      {activity.type === 'warning' && (
+                        <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      )}
+                      {activity.type === 'info' && (
+                        <Activity className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-zinc-200">{activity.message}</p>
+                        <p className="text-xs text-zinc-500 mt-1">{activity.time}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common tasks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Link href="/analysis">
+                <Button variant="outline" className="w-full justify-start" size="sm">
+                  <Code className="h-4 w-4 mr-2" />
+                  Analyze Code Quality
+                </Button>
+              </Link>
+              <Link href="/repositories">
+                <Button variant="outline" className="w-full justify-start" size="sm">
+                  <GitBranch className="h-4 w-4 mr-2" />
+                  Manage Repositories
+                </Button>
+              </Link>
+              <Link href="/workspace">
+                <Button variant="outline" className="w-full justify-start" size="sm">
+                  <Zap className="h-4 w-4 mr-2" />
+                  Browse Workspace
+                </Button>
+              </Link>
+              <Link href="/metrics">
+                <Button variant="outline" className="w-full justify-start" size="sm">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  View Metrics
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* System Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle>System Status</CardTitle>
+            <CardDescription>Prometheus engine health</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { name: 'Memory Engine', status: 'operational', icon: Database },
+                { name: 'Runtime Engine', status: 'operational', icon: Zap },
+                { name: 'Analysis Engine', status: 'operational', icon: Code },
+                { name: 'Queue System', status: 'operational', icon: Activity },
+              ].map((service) => (
+                <div
+                  key={service.name}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04]"
+                >
+                  <service.icon className="h-5 w-5 text-zinc-400" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-zinc-200 truncate">
+                      {service.name}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                      <span className="text-xs text-zinc-500 capitalize">
+                        {service.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   )

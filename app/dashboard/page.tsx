@@ -12,61 +12,86 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import AppLayout from '@/components/layout/AppLayout'
+import { useEffect, useState } from 'react'
+
+interface Stats {
+  repositories: number
+  codeQuality: number
+  activeTasks: number
+  memoryUsage: string
+  chunksIndexed: number
+}
+
+interface ActivityItem {
+  type: 'success' | 'warning' | 'info'
+  message: string
+  time: string
+}
 
 export default function DashboardPage() {
-  const stats = [
-    {
-      name: 'Repositories',
-      value: '3',
-      change: '+1 this week',
-      icon: GitBranch,
-      color: 'text-blue-400',
-    },
-    {
-      name: 'Code Quality',
-      value: '87%',
-      change: '+5% from last week',
-      icon: Code,
-      color: 'text-emerald-400',
-    },
-    {
-      name: 'Active Tasks',
-      value: '12',
-      change: '4 pending approval',
-      icon: Activity,
-      color: 'text-amber-400',
-    },
-    {
-      name: 'Memory Usage',
-      value: '2.4 GB',
-      change: '12,450 chunks indexed',
-      icon: Database,
-      color: 'text-purple-400',
-    },
-  ]
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const recentActivity = [
-    {
-      type: 'success',
-      message: 'Code quality analysis completed for main branch',
-      time: '2 minutes ago',
-    },
-    {
-      type: 'warning',
-      message: 'Consultation required: High-impact refactoring detected',
-      time: '15 minutes ago',
-    },
-    {
-      type: 'success',
-      message: 'Pattern applied: OpenClaw memory optimization',
-      time: '1 hour ago',
-    },
-    {
-      type: 'info',
-      message: 'New repository registered: prometheus-admin-portal',
-      time: '2 hours ago',
-    },
-  ]
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [statsRes, activityRes] = await Promise.all([
+          fetch('/api/stats'),
+          fetch('/api/activity'),
+        ])
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          setStats(statsData)
+        }
+
+        if (activityRes.ok) {
+          const activityData = await activityRes.json()
+          setActivities(activityData.activities || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const statCards = stats
+    ? [
+        {
+          name: 'Repositories',
+          value: stats.repositories.toString(),
+          change: '+1 this week',
+          icon: GitBranch,
+          color: 'text-blue-400',
+        },
+        {
+          name: 'Code Quality',
+          value: `${stats.codeQuality}%`,
+          change: '+5% from last week',
+          icon: Code,
+          color: 'text-emerald-400',
+        },
+        {
+          name: 'Active Tasks',
+          value: stats.activeTasks.toString(),
+          change: '4 pending approval',
+          icon: Activity,
+          color: 'text-amber-400',
+        },
+        {
+          name: 'Memory Usage',
+          value: stats.memoryUsage,
+          change: `${stats.chunksIndexed.toLocaleString()} chunks indexed`,
+          icon: Database,
+          color: 'text-purple-400',
+        },
+      ]
+    : []
 
   return (
     <AppLayout>
@@ -81,20 +106,26 @@ export default function DashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => (
-            <Card key={stat.name} className="hover:border-[#5E6AD2]/40 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-zinc-400">
-                  {stat.name}
-                </CardTitle>
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-                <p className="text-xs text-zinc-500">{stat.change}</p>
-              </CardContent>
-            </Card>
-          ))}
+          {loading ? (
+            <div className="col-span-4 text-center text-zinc-400 py-8">
+              Loading stats...
+            </div>
+          ) : (
+            statCards.map((stat) => (
+              <Card key={stat.name} className="hover:border-[#5E6AD2]/40 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-zinc-400">
+                    {stat.name}
+                  </CardTitle>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+                  <p className="text-xs text-zinc-500">{stat.change}</p>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Main Content Grid */}
@@ -107,26 +138,32 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors"
-                  >
-                    {activity.type === 'success' && (
-                      <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                    )}
-                    {activity.type === 'warning' && (
-                      <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                    )}
-                    {activity.type === 'info' && (
-                      <Activity className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-zinc-200">{activity.message}</p>
-                      <p className="text-xs text-zinc-500 mt-1">{activity.time}</p>
-                    </div>
+                {activities.length === 0 ? (
+                  <div className="text-center text-zinc-400 py-4">
+                    No recent activity
                   </div>
-                ))}
+                ) : (
+                  activities.map((activity, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors"
+                    >
+                      {activity.type === 'success' && (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      )}
+                      {activity.type === 'warning' && (
+                        <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      )}
+                      {activity.type === 'info' && (
+                        <Activity className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-zinc-200">{activity.message}</p>
+                        <p className="text-xs text-zinc-500 mt-1">{activity.time}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

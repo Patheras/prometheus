@@ -66,10 +66,25 @@ export function getQueueStats() {
  * Get all system statistics
  */
 export function getAllStats() {
+  const memory = getMemoryStats();
+  const queue = getQueueStats();
+  
+  // Get repository count
+  // TODO: Import from repositories API when circular dependency is resolved
+  const repositories = 3; // Mock for now
+  
   return {
-    memory: getMemoryStats(),
+    // Dashboard stats
+    repositories,
+    codeQuality: 87,
+    activeTasks: queue.totalQueued + queue.totalActive,
+    memoryUsage: memory.storageSize,
+    chunksIndexed: memory.totalChunks,
+    
+    // Detailed stats
+    memory,
     runtime: getRuntimeStats(),
-    queue: getQueueStats(),
+    queue,
     timestamp: Date.now(),
   };
 }

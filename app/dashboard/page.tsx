@@ -60,38 +60,36 @@ export default function DashboardPage() {
     fetchData()
   }, [])
 
-  const statCards = stats
-    ? [
-        {
-          name: 'Repositories',
-          value: stats.repositories.toString(),
-          change: '+1 this week',
-          icon: GitBranch,
-          color: 'text-blue-400',
-        },
-        {
-          name: 'Code Quality',
-          value: `${stats.codeQuality}%`,
-          change: '+5% from last week',
-          icon: Code,
-          color: 'text-emerald-400',
-        },
-        {
-          name: 'Active Tasks',
-          value: stats.activeTasks.toString(),
-          change: '4 pending approval',
-          icon: Activity,
-          color: 'text-amber-400',
-        },
-        {
-          name: 'Memory Usage',
-          value: stats.memoryUsage,
-          change: `${stats.chunksIndexed.toLocaleString()} chunks indexed`,
-          icon: Database,
-          color: 'text-purple-400',
-        },
-      ]
-    : []
+  const statCards = [
+    {
+      name: 'Repositories',
+      value: stats?.repositories?.toString() || '0',
+      change: '+1 this week',
+      icon: GitBranch,
+      color: 'text-blue-400',
+    },
+    {
+      name: 'Code Quality',
+      value: stats?.codeQuality ? `${stats.codeQuality}%` : '0%',
+      change: '+5% from last week',
+      icon: Code,
+      color: 'text-emerald-400',
+    },
+    {
+      name: 'Active Tasks',
+      value: stats?.activeTasks?.toString() || '0',
+      change: '4 pending approval',
+      icon: Activity,
+      color: 'text-amber-400',
+    },
+    {
+      name: 'Memory Usage',
+      value: stats?.memoryUsage || '0 GB',
+      change: stats?.chunksIndexed ? `${stats.chunksIndexed.toLocaleString()} chunks indexed` : '0 chunks indexed',
+      icon: Database,
+      color: 'text-purple-400',
+    },
+  ]
 
   return (
     <AppLayout>

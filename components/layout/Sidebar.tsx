@@ -12,6 +12,8 @@ import {
   GitBranch,
   FileCode,
   BarChart3,
+  LayoutGrid,
+  Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -34,6 +36,11 @@ export default function Sidebar({ isOpen, onToggle }: Props) {
       name: 'Custom Canvas',
       href: '/canvas',
       icon: LayoutGrid,
+    },
+    {
+      name: 'Self-Evolution',
+      href: '/evolution',
+      icon: Sparkles,
     },
     {
       name: 'Workspace',

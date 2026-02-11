@@ -1,0 +1,2 @@
+{"role":"user","content":"Şu an reasoning modun high mı?","timestamp":1770769411866}
+{"role":"assistant","content":"Evet, şu an yüksek (high) akıl yürütme modundayım. Size nasıl yardımcı olabilirim?","timestamp":1770769414281,"metadata":{"model":"gpt-oss-120b","provider":"azure-openai","usage":{"promptTokens":116,"completionTokens":366,"totalTokens":482}}}

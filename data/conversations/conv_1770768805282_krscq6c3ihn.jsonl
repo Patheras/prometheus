@@ -1,0 +1,2 @@
+{"role":"user","content":"Merhaba Prometheus!","timestamp":1770768805348}
+{"role":"assistant","content":"Merhaba! Ben Prometheus, kod tabanınızı analiz etmenize, hataları tespit etmenize ve iyileştirmeler yapmanıza yardımcı olmak için buradayım. Hangi konuda destek almak istersiniz? (ör. kod incelemesi, performans analizi, refaktörleme, test yazımı vb.)","timestamp":1770768808050,"metadata":{"model":"gpt-oss-120b","provider":"azure-openai","usage":{"promptTokens":108,"completionTokens":330,"totalTokens":438}}}

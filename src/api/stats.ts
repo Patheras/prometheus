@@ -1,0 +1,139 @@
+/**
+ * Stats API - Memory, Runtime, and Queue Statistics
+ */
+
+import { getAllLanes, getLaneStatus } from '../queue/lane-queue.js';
+import { Request, Response } from 'express';
+
+/**
+ * Get memory engine statistics
+ */
+export function getMemoryStats() {
+  // TODO: Connect to actual memory engine when available
+  // For now, return mock data
+  return {
+    totalChunks: 12450,
+    indexedFiles: 342,
+    conversations: 15,
+    decisions: 28,
+    patterns: 12,
+    storageSize: '2.4 GB',
+    lastIndexed: Date.now() - 120000, // 2 min ago
+  };
+}
+
+/**
+ * Get runtime executor statistics
+ */
+export function getRuntimeStats() {
+  // TODO: Connect to actual runtime executor when available
+  // For now, return mock data
+  return {
+    totalRequests: 1247,
+    successfulRequests: 1198,
+    failedRequests: 49,
+    avgResponseTime: 2340, // ms
+    totalTokens: 1847293,
+    promptTokens: 892341,
+    completionTokens: 954952,
+    activeStreams: 0,
+    lastRequest: Date.now() - 45000, // 45 sec ago
+  };
+}
+
+/**
+ * Get queue system statistics
+ */
+export function getQueueStats() {
+  const lanes = getAllLanes();
+  const laneStats = lanes.map(lane => getLaneStatus(lane));
+  
+  const totalQueued = laneStats.reduce((sum, lane) => sum + lane.queueDepth, 0);
+  const totalActive = laneStats.reduce((sum, lane) => sum + lane.activeCount, 0);
+  const avgWaitTime = laneStats.length > 0
+    ? laneStats.reduce((sum, lane) => sum + lane.avgWaitTime, 0) / laneStats.length
+    : 0;
+  
+  return {
+    totalQueued,
+    totalActive,
+    avgWaitTime,
+    lanes: laneStats,
+  };
+}
+
+/**
+ * Get all system statistics
+ */
+export function getAllStats() {
+  return {
+    memory: getMemoryStats(),
+    runtime: getRuntimeStats(),
+    queue: getQueueStats(),
+    timestamp: Date.now(),
+  };
+}
+
+/**
+ * Express route handler for memory stats
+ */
+export function handleMemoryStatsRequest(_req: Request, res: Response) {
+  try {
+    const stats = getMemoryStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Memory stats error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch memory stats',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Express route handler for runtime stats
+ */
+export function handleRuntimeStatsRequest(_req: Request, res: Response) {
+  try {
+    const stats = getRuntimeStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Runtime stats error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch runtime stats',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Express route handler for queue stats
+ */
+export function handleQueueStatsRequest(_req: Request, res: Response) {
+  try {
+    const stats = getQueueStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Queue stats error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch queue stats',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Express route handler for all stats
+ */
+export function handleAllStatsRequest(_req: Request, res: Response) {
+  try {
+    const stats = getAllStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('All stats error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch stats',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}

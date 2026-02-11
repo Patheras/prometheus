@@ -1,0 +1,2 @@
+{"role":"user","content":"test","timestamp":1770768931856}
+{"role":"assistant","content":"Hello! I’m Prometheus, your meta‑assistant for analyzing and improving code. Your test message came through successfully. How can I help you with your codebase today? Feel free to share any files, snippets, or questions you have.","timestamp":1770768933726,"metadata":{"model":"gpt-oss-120b","provider":"azure-openai","usage":{"promptTokens":101,"completionTokens":364,"totalTokens":465}}}

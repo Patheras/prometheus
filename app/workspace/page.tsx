@@ -1,109 +1,107 @@
 'use client'
-
-import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Folder, File, GitBranch, Clock } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
-import Canvas, { WidgetConfig } from '@/components/canvas/Canvas'
-import DashboardLibrary from '@/components/canvas/DashboardLibrary'
-import { renderWidget } from '@/components/widgets/WidgetRegistry'
 
 export default function WorkspacePage() {
-  const [widgets, setWidgets] = useState<WidgetConfig[]>([])
-  const [showLibrary, setShowLibrary] = useState(false)
-
-  // Load widgets from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('workspace-widgets')
-    if (saved) {
-      try {
-        setWidgets(JSON.parse(saved))
-      } catch (error) {
-        console.error('Failed to load widgets:', error)
-      }
-    } else {
-      // Default widgets
-      setWidgets([
-        {
-          id: 'repo-status-1',
-          type: 'repository-status',
-          title: 'Repository Status',
-          layout: { i: 'repo-status-1', x: 0, y: 0, w: 6, h: 3 },
-        },
-        {
-          id: 'metrics-1',
-          type: 'metrics-chart',
-          title: 'Performance Metrics',
-          layout: { i: 'metrics-1', x: 6, y: 0, w: 6, h: 3 },
-        },
-        {
-          id: 'consultations-1',
-          type: 'consultation-list',
-          title: 'Recent Consultations',
-          layout: { i: 'consultations-1', x: 0, y: 3, w: 12, h: 4 },
-        },
-      ])
-    }
-  }, [])
-
-  // Save widgets to localStorage
-  const handleLayoutChange = (updatedWidgets: WidgetConfig[]) => {
-    setWidgets(updatedWidgets)
-    localStorage.setItem('workspace-widgets', JSON.stringify(updatedWidgets))
-  }
-
-  const handleAddWidget = (widget: WidgetConfig) => {
-    const newWidgets = [...widgets, widget]
-    setWidgets(newWidgets)
-    localStorage.setItem('workspace-widgets', JSON.stringify(newWidgets))
-    setShowLibrary(false)
-  }
-
-  const handleRemoveWidget = (id: string) => {
-    const newWidgets = widgets.filter((w) => w.id !== id)
-    setWidgets(newWidgets)
-    localStorage.setItem('workspace-widgets', JSON.stringify(newWidgets))
-  }
-
   return (
     <AppLayout>
-      <div className="h-screen flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-white/[0.08]">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Workspace</h1>
-            <p className="text-zinc-400">
-              Customize your dashboard with widgets
-            </p>
-          </div>
-          <Button
-            onClick={() => setShowLibrary(true)}
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Widget
-          </Button>
+      <div className="p-8 space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Workspace</h1>
+          <p className="text-zinc-400">
+            Browse and manage your codebase files
+          </p>
         </div>
 
-        {/* Canvas */}
-        <div className="flex-1 overflow-auto p-8">
-          <Canvas
-            widgets={widgets}
-            onLayoutChange={handleLayoutChange}
-            onRemoveWidget={handleRemoveWidget}
-            renderWidget={renderWidget}
-            editable={true}
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-zinc-400">
+                Total Files
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">342</div>
+              <p className="text-xs text-zinc-500 mt-1">Indexed files</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-zinc-400">
+                Code Files
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">287</div>
+              <p className="text-xs text-zinc-500 mt-1">TypeScript/JavaScript</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-zinc-400">
+                Last Scan
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">2m</div>
+              <p className="text-xs text-zinc-500 mt-1">ago</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-zinc-400">
+                Branches
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">3</div>
+              <p className="text-xs text-zinc-500 mt-1">Active branches</p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Dashboard Library Modal */}
-        {showLibrary && (
-          <DashboardLibrary
-            onClose={() => setShowLibrary(false)}
-            onAddWidget={handleAddWidget}
-            existingWidgets={widgets}
-          />
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>File Browser</CardTitle>
+            <CardDescription>Browse your codebase structure</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {[
+                { name: 'src/', type: 'folder', files: 156 },
+                { name: 'components/', type: 'folder', files: 42 },
+                { name: 'app/', type: 'folder', files: 28 },
+                { name: 'lib/', type: 'folder', files: 18 },
+                { name: 'package.json', type: 'file', size: '2.4 KB' },
+                { name: 'tsconfig.json', type: 'file', size: '1.2 KB' },
+              ].map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors cursor-pointer"
+                >
+                  {item.type === 'folder' ? (
+                    <Folder className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                  ) : (
+                    <File className="h-5 w-5 text-zinc-400 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-zinc-200">{item.name}</p>
+                    <p className="text-xs text-zinc-500">
+                      {item.type === 'folder' ? `${item.files} files` : item.size}
+                    </p>
+                  </div>
+                  {item.type === 'folder' && (
+                    <GitBranch className="h-4 w-4 text-zinc-500" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   )

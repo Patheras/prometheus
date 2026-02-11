@@ -32,6 +32,10 @@ import {
   handleQueueStatsRequest,
   handleAllStatsRequest,
 } from './api/stats.js';
+import {
+  handleGetFiles,
+  handleGetFileContent,
+} from './api/workspace.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -264,6 +268,10 @@ app.get('/api/stats', handleAllStatsRequest);
 app.get('/api/stats/memory', handleMemoryStatsRequest);
 app.get('/api/stats/runtime', handleRuntimeStatsRequest);
 app.get('/api/stats/queue', handleQueueStatsRequest);
+
+// Workspace Endpoints
+app.get('/api/workspace/:repoId/files', handleGetFiles);
+app.get('/api/workspace/:repoId/files/*', handleGetFileContent);
 
 // API info endpoint
 app.get('/api', (req, res) => {

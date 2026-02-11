@@ -36,6 +36,14 @@ import {
   handleGetFiles,
   handleGetFileContent,
 } from './api/workspace.js';
+import {
+  handleGetEvolutionStats,
+  handleGetPendingPromotions,
+  handleGetRecentImprovements,
+  handleApprovePromotion,
+  handleRejectPromotion,
+  handleRunSelfAnalysis,
+} from './api/evolution.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -272,6 +280,14 @@ app.get('/api/stats/queue', handleQueueStatsRequest);
 // Workspace Endpoints
 app.get('/api/workspace/:repoId/files', handleGetFiles);
 app.get('/api/workspace/:repoId/files/*', handleGetFileContent);
+
+// Evolution Endpoints
+app.get('/api/evolution/stats', handleGetEvolutionStats);
+app.get('/api/evolution/promotions/pending', handleGetPendingPromotions);
+app.get('/api/evolution/improvements/recent', handleGetRecentImprovements);
+app.post('/api/evolution/promotions/:promotionId/approve', handleApprovePromotion);
+app.post('/api/evolution/promotions/:promotionId/reject', handleRejectPromotion);
+app.post('/api/evolution/analysis/run', handleRunSelfAnalysis);
 
 // API info endpoint
 app.get('/api', (req, res) => {

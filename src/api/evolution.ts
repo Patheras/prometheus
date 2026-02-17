@@ -3,63 +3,92 @@
  */
 
 import { Request, Response } from 'express'
+import { DevProdManager } from '../evolution/dev-prod-manager.js'
+import { SelfAnalyzer } from '../evolution/self-analyzer.js'
 
-// Mock data for now - will be replaced with real DevProdManager
-const mockPromotions = [
-  {
-    id: 'promotion-1',
-    title: 'Optimize memory engine query performance',
-    description: 'Improved query performance by 40% through better indexing',
-    status: 'deployed',
-    createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
-    approvedAt: Date.now() - 1.5 * 24 * 60 * 60 * 1000,
-    deployedAt: Date.now() - 1 * 24 * 60 * 60 * 1000,
-    impactAssessment: {
-      risk: 'medium',
-      benefits: ['+40% faster indexing', 'Reduced memory usage'],
-    },
-  },
-  {
-    id: 'promotion-2',
-    title: 'Refactor runtime executor error handling',
-    description: 'Better error messages and recovery strategies',
-    status: 'pending',
-    createdAt: Date.now() - 5 * 60 * 60 * 1000,
-    impactAssessment: {
-      risk: 'medium',
-      benefits: ['Better debugging', 'Improved reliability'],
-    },
-  },
-  {
-    id: 'promotion-3',
-    title: 'Add caching layer to file scanner',
-    description: 'Cache file metadata to avoid repeated scans',
-    status: 'pending',
-    createdAt: Date.now() - 24 * 60 * 60 * 1000,
-    impactAssessment: {
-      risk: 'high',
-      benefits: ['+60% faster scans', 'Reduced disk I/O'],
-    },
-  },
-]
+// Global instances (will be initialized in index.ts)
+let devProdManager: DevProdManager | null = null
+let selfAnalyzer: SelfAnalyzer | null = null
+
+/**
+ * Initialize evolution system with DevProdManager and SelfAnalyzer
+ */
+export function initializeEvolutionSystem(
+  manager: DevProdManager,
+  analyzer: SelfAnalyzer
+): void {
+  devProdManager = manager
+  selfAnalyzer = analyzer
+  console.log('[Evolution] System initialized')
+}
+
+/**
+ * Get DevProdManager instance
+ */
+function getDevProdManager(): DevProdManager {
+  if (!devProdManager) {
+    throw new Error('DevProdManager not initialized. Call initializeEvolutionSystem first.')
+  }
+  return devProdManager
+}
+
+/**
+ * Get SelfAnalyzer instance
+ */
+function getSelfAnalyzer(): SelfAnalyzer {
+  if (!selfAnalyzer) {
+    throw new Error('SelfAnalyzer not initialized. Call initializeEvolutionSystem first.')
+  }
+  return selfAnalyzer
+}
 
 /**
  * Get evolution statistics
  */
-export function handleGetEvolutionStats(req: Request, res: Response) {
+export function handleGetEvolutionStats(_req: Request, res: Response) {
   try {
+    const manager = getDevProdManager()
+    const analyzer = getSelfAnalyzer()
+    
+    // Get promotion statistics
+    const promotionStats = manager.getStatistics()
+    
+    // Get self-analysis metrics
+    let analysisMetrics
+    let lastAnalysisTime = 0
+    try {
+      const lastAnalysis = analyzer.getLastAnalysis()
+      analysisMetrics = lastAnalysis.metrics
+      lastAnalysisTime = lastAnalysis.timestamp
+    } catch (error) {
+      // No analysis run yet, use defaults
+      analysisMetrics = {
+        totalFiles: 0,
+        totalLines: 0,
+        averageComplexity: 0,
+        testCoverage: 0,
+        qualityScore: 0,
+      }
+    }
+    
+    // Calculate success rate
+    const totalPromotions = promotionStats.deployed + promotionStats.rolledBack
+    const successRate = totalPromotions > 0
+      ? Math.round((promotionStats.deployed / totalPromotions) * 100)
+      : 0
+    
     const stats = {
-      improvements: 12,
-      pending: 3,
-      successRate: 94,
-      lastAnalysis: Date.now() - 2 * 60 * 60 * 1000,
+      improvements: promotionStats.deployed,
+      pending: promotionStats.pending,
+      successRate,
+      lastAnalysis: lastAnalysisTime,
       metrics: {
-        codeQuality: 87,
-        codeQualityChange: 12,
-        performance: 92,
-        performanceChange: 8,
-        testCoverage: 81,
-        testCoverageChange: 5,
+        codeQuality: Math.round(analysisMetrics.qualityScore),
+        codeQualityChange: 0, // TODO: Calculate from history
+        performance: 92, // TODO: Get from real metrics
+        performanceChange: 0,
+        testCoverage: Math.round(analysisMetrics.testCoverage),
+        testCoverageChange: 0,
       },
       patterns: [
         { name: 'Caching Strategy', uses: 8, success: 100 },
@@ -82,9 +111,10 @@ export function handleGetEvolutionStats(req: Request, res: Response) {
 /**
  * Get pending promotions
  */
-export function handleGetPendingPromotions(req: Request, res: Response) {
+export function handleGetPendingPromotions(_req: Request, res: Response) {
   try {
-    const pending = mockPromotions.filter(p => p.status === 'pending')
+    const manager = getDevProdManager()
+    const pending = manager.getPendingPromotions()
     res.json({ promotions: pending })
   } catch (error) {
     console.error('Get pending promotions error:', error)
@@ -98,28 +128,23 @@ export function handleGetPendingPromotions(req: Request, res: Response) {
 /**
  * Get recent improvements
  */
-export function handleGetRecentImprovements(req: Request, res: Response) {
+export function handleGetRecentImprovements(_req: Request, res: Response) {
   try {
-    const recent = [
-      {
-        title: 'Improved chunking algorithm efficiency',
-        impact: 'high',
-        result: '+40% faster indexing',
-        time: Date.now() - 2 * 24 * 60 * 60 * 1000,
-      },
-      {
-        title: 'Reduced memory footprint in queue system',
-        impact: 'medium',
-        result: '-25% memory usage',
-        time: Date.now() - 3 * 24 * 60 * 60 * 1000,
-      },
-      {
-        title: 'Enhanced error messages in analysis engine',
-        impact: 'low',
-        result: 'Better debugging',
-        time: Date.now() - 5 * 24 * 60 * 60 * 1000,
-      },
-    ]
+    const manager = getDevProdManager()
+    
+    // Get all promotions and filter deployed ones
+    const allPromotions = Array.from((manager as any).promotionRequests.values())
+    const deployed = allPromotions
+      .filter((p: any) => p.status === 'deployed')
+      .sort((a: any, b: any) => (b.deployedAt || 0) - (a.deployedAt || 0))
+      .slice(0, 10)
+    
+    const recent = deployed.map((p: any) => ({
+      title: p.title,
+      impact: p.impactAssessment.risk,
+      result: p.impactAssessment.benefits[0] || 'Improvement applied',
+      time: p.deployedAt || p.createdAt,
+    }))
 
     res.json({ improvements: recent })
   } catch (error) {
@@ -134,13 +159,19 @@ export function handleGetRecentImprovements(req: Request, res: Response) {
 /**
  * Approve promotion
  */
-export function handleApprovePromotion(req: Request, res: Response) {
+export async function handleApprovePromotion(req: Request, res: Response): Promise<any> {
   try {
     const { promotionId } = req.params
     const { approvedBy } = req.body
 
-    // TODO: Call DevProdManager.approvePromotion()
-    console.log(`Approving promotion ${promotionId} by ${approvedBy}`)
+    if (!approvedBy) {
+      return res.status(400).json({
+        error: 'Missing required field: approvedBy',
+      })
+    }
+
+    const manager = getDevProdManager()
+    await manager.approvePromotion(promotionId as string, approvedBy)
 
     res.json({
       success: true,
@@ -158,13 +189,19 @@ export function handleApprovePromotion(req: Request, res: Response) {
 /**
  * Reject promotion
  */
-export function handleRejectPromotion(req: Request, res: Response) {
+export async function handleRejectPromotion(req: Request, res: Response): Promise<any> {
   try {
     const { promotionId } = req.params
     const { rejectedBy, reason } = req.body
 
-    // TODO: Call DevProdManager.rejectPromotion()
-    console.log(`Rejecting promotion ${promotionId} by ${rejectedBy}: ${reason}`)
+    if (!rejectedBy || !reason) {
+      return res.status(400).json({
+        error: 'Missing required fields: rejectedBy, reason',
+      })
+    }
+
+    const manager = getDevProdManager()
+    await manager.rejectPromotion(promotionId as string, rejectedBy, reason)
 
     res.json({
       success: true,
@@ -182,15 +219,30 @@ export function handleRejectPromotion(req: Request, res: Response) {
 /**
  * Run self-analysis
  */
-export function handleRunSelfAnalysis(req: Request, res: Response) {
+export async function handleRunSelfAnalysis(_req: Request, res: Response): Promise<void> {
   try {
-    // TODO: Call SelfAnalyzer.runAnalysis()
-    console.log('Running self-analysis...')
+    const analyzer = getSelfAnalyzer()
+    
+    console.log('[Evolution] Starting self-analysis...')
+    
+    // Run analysis and wait for results
+    const result = await analyzer.runAnalysis()
+    
+    console.log('[Evolution] Self-analysis complete:', {
+      issues: result.issues.length,
+      debt: result.debt.length,
+      improvements: result.improvements.length,
+      qualityScore: result.metrics.qualityScore,
+    })
 
     res.json({
       success: true,
-      message: 'Self-analysis started',
-      analysisId: `analysis-${Date.now()}`,
+      message: 'Self-analysis completed',
+      timestamp: result.timestamp,
+      issues: result.issues,
+      debt: result.debt,
+      improvements: result.improvements,
+      metrics: result.metrics,
     })
   } catch (error) {
     console.error('Run self-analysis error:', error)

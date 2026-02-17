@@ -106,15 +106,6 @@ export class SelfModificationConsultant {
   }
 
   /**
-   * Get the target repository path
-   */
-  private getTargetRepoPath(): string {
-    return this.config.targetRepo === 'prometheus'
-      ? this.config.prometheusRepoPath
-      : this.config.anotsRepoPath;
-  }
-
-  /**
    * Get the target repository name for display
    */
   private getTargetRepoName(): string {
@@ -185,12 +176,15 @@ export class SelfModificationConsultant {
       id: `self-mod-${proposalId}`,
       description: this.buildDecisionDescription(proposal),
       type: 'self-modification',
+      context: {
+        proposalId,
+        files: proposal.files,
+      },
       change: {
+        type: 'self-modification',
         files: proposal.files,
         description: this.buildChangeDescription(proposal),
       },
-      reasoning: this.buildReasoning(proposal),
-      timestamp: Date.now(),
     };
 
     // Build impact assessment
@@ -327,11 +321,10 @@ export class SelfModificationConsultant {
         description: this.buildDecisionDescription(proposal),
         type: 'self-modification',
         change: {
+          type: 'self-modification',
           files: proposal.files,
           description: this.buildChangeDescription(proposal),
         },
-        reasoning: this.buildReasoning(proposal),
-        timestamp: Date.now(),
       };
 
       const impact: ImpactAssessment = {
@@ -392,7 +385,7 @@ export class SelfModificationConsultant {
 
     // Extract unique files from improvements
     const files = Array.from(
-      new Set(improvements.map((i) => i.location.split(':')[0]))
+      new Set(improvements.map((i) => i.location.split(':')[0]).filter((f): f is string => f !== undefined))
     );
 
     // Calculate total effort
@@ -470,26 +463,6 @@ export class SelfModificationConsultant {
     parts.push(proposal.testPlan);
 
     return parts.join('\n');
-  }
-
-  /**
-   * Build reasoning
-   */
-  private buildReasoning(proposal: SelfModificationProposal): string {
-    const parts: string[] = [];
-
-    parts.push('Self-analysis identified opportunities for improvement.');
-    parts.push(
-      `ROI analysis shows average ROI of ${proposal.prioritizedWork.roiMetrics.averageROI.toFixed(2)}.`
-    );
-    parts.push(
-      `${proposal.prioritizedWork.roiMetrics.highROICount} high-ROI improvements identified.`
-    );
-    parts.push(
-      `Self-improvement ratio: ${(proposal.prioritizedWork.selfImprovementRatio * 100).toFixed(1)}%`
-    );
-
-    return parts.join(' ');
   }
 
   /**

@@ -5,8 +5,7 @@
  */
 
 import type { RuntimeExecutor } from '../runtime/runtime-executor';
-import type { MemoryEngine } from '../memory';
-import type { Component, Risk, RefactoringPlan, RefactoringStep } from '../types';
+import type { RefactoringPlan } from '../types';
 
 export interface ArchitecturalIssue {
   type: 'tight_coupling' | 'circular_dependency' | 'missing_abstraction' | 'scalability';
@@ -26,7 +25,6 @@ export interface ArchitectureMetrics {
 
 export class ArchitectureAnalyzer {
   constructor(
-    private memoryEngine: MemoryEngine,
     private runtimeExecutor?: RuntimeExecutor
   ) {}
 
@@ -145,7 +143,7 @@ export class ArchitectureAnalyzer {
         severity: 'high',
         description: `Circular dependency detected: ${cycle.join(' -> ')}`,
         affectedComponents: cycle,
-        location: cycle[0],
+        location: cycle[0] ?? 'unknown',
         impact: 'Circular dependencies make code harder to test and maintain',
       });
     }
@@ -276,7 +274,8 @@ Return a JSON array of issues with: type, severity, description, affectedCompone
     // Group issues by type
     const issuesByType = issues.reduce((acc, issue) => {
       if (!acc[issue.type]) acc[issue.type] = [];
-      acc[issue.type].push(issue);
+      const arr = acc[issue.type];
+      if (arr) arr.push(issue);
       return acc;
     }, {} as Record<string, ArchitecturalIssue[]>);
 
@@ -330,7 +329,7 @@ Return JSON with: description, steps (array of {description, files, changes}), a
    */
   async checkBackwardCompatibility(
     plan: RefactoringPlan,
-    repoPath: string
+    _repoPath: string
   ): Promise<{ compatible: boolean; breakingChanges: string[]; suggestions: string[] }> {
     const breakingChanges: string[] = [];
     const suggestions: string[] = [];
@@ -459,7 +458,7 @@ Return JSON with: description, steps (array of {description, files, changes}), a
     while ((match = importRegex.exec(content)) !== null) {
       const importPath = match[1];
       // Only track relative imports (local dependencies)
-      if (importPath.startsWith('.') || importPath.startsWith('/')) {
+      if (importPath && (importPath.startsWith('.') || importPath.startsWith('/'))) {
         imports.push(importPath);
       }
     }

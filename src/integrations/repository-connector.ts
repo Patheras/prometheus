@@ -130,7 +130,7 @@ export class RepositoryConnector {
       // Build clone command with credentials if provided
       const cloneUrl = this.buildAuthenticatedUrl();
       
-      const { stdout, stderr } = await execAsync(
+      const { stderr } = await execAsync(
         `git clone --branch ${this.config.branch} ${cloneUrl} ${this.config.localPath}`
       );
       
@@ -193,7 +193,7 @@ export class RepositoryConnector {
     console.log(`[${this.config.id}] Indexing codebase...`);
     
     try {
-      await this.memoryEngine.indexCodebase(this.config.localPath, this.config.id);
+      await this.memoryEngine.indexCodebase(this.config.localPath);
       
       // Store current commit hash
       this.lastCommitHash = await this.getCurrentCommitHash();
@@ -335,7 +335,7 @@ export class RepositoryConnector {
    */
   async pullChanges(): Promise<void> {
     try {
-      const { stdout, stderr } = await execAsync(
+      const { stderr } = await execAsync(
         `git pull origin ${this.config.branch}`,
         { cwd: this.config.localPath }
       );
@@ -359,7 +359,7 @@ export class RepositoryConnector {
   private async handleFileChange(filePath: string): Promise<void> {
     try {
       // Use delta sync to update only this file
-      await this.memoryEngine.syncCodebase(this.config.localPath, this.config.id);
+      await this.memoryEngine.indexCodebase(this.config.localPath);
     } catch (error) {
       console.error(`[${this.config.id}] Error handling file change for ${filePath}:`, error);
     }

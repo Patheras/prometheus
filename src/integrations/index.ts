@@ -43,8 +43,6 @@ export type {
 
 export { RepositoryProfileManager } from './repository-profiles';
 export type {
-  RepositoryProfile,
-  BranchingStrategy,
   BranchingConfig,
   TestConfig,
   TestCommand,
@@ -82,7 +80,6 @@ export type {
 export { AnotsManager } from './anots-manager';
 export type {
   AnotsPattern,
-  BranchingStrategy,
   RepositoryInfo,
   ConventionViolation,
 } from './anots-manager';

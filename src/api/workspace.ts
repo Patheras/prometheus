@@ -10,7 +10,7 @@ import { join } from 'path'
 /**
  * Get files for a repository or Prometheus itself
  */
-export function handleGetFiles(req: Request, res: Response) {
+export function handleGetFiles(req: Request, res: Response): any {
   try {
     const { repoId } = req.params
     
@@ -52,7 +52,7 @@ export function handleGetFiles(req: Request, res: Response) {
       let current = fileTree
       
       for (let i = 0; i < parts.length - 1; i++) {
-        const dir = parts[i]
+        const dir = parts[i]!
         if (!current[dir]) {
           current[dir] = { type: 'folder', children: {}, files: 0 }
         }
@@ -60,7 +60,7 @@ export function handleGetFiles(req: Request, res: Response) {
         current = current[dir].children
       }
       
-      const fileName = parts[parts.length - 1]
+      const fileName = parts[parts.length - 1]!
       current[fileName] = {
         type: 'file',
         size: file.size,
@@ -98,13 +98,13 @@ export function handleGetFiles(req: Request, res: Response) {
 /**
  * Get file content
  */
-export function handleGetFileContent(req: Request, res: Response) {
+export function handleGetFileContent(req: Request, res: Response): any {
   try {
     const { repoId, filePath } = req.params
     
     let fullPath: string
     if (repoId === 'self' || !repoId) {
-      fullPath = join(process.cwd(), filePath)
+      fullPath = join(process.cwd(), filePath as string)
     } else {
       // TODO: Get repository path from database
       return res.status(404).json({ error: 'Repository not found' })

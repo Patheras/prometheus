@@ -40,10 +40,10 @@ describe('Model Preferences', () => {
       }
     });
 
-    it('should prefer Claude Sonnet for code analysis', () => {
+    it('should prefer Gemini 3 Pro for code analysis', () => {
       const preferences = TASK_TYPE_PREFERENCES[TaskType.CODE_ANALYSIS];
-      expect(preferences[0].provider).toBe('anthropic');
-      expect(preferences[0].model).toBe('claude-sonnet-4');
+      expect(preferences[0].provider).toBe('google');
+      expect(preferences[0].model).toBe('gemini-3-pro-preview');
     });
 
     it('should prefer Claude Opus or O1 for decision making', () => {

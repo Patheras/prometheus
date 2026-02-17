@@ -75,7 +75,7 @@ export function updateRepository(
   repositories[index] = {
     ...repositories[index],
     ...data,
-  }
+  } as Repository
   return repositories[index]
 }
 

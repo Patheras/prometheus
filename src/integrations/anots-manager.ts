@@ -8,7 +8,6 @@
  */
 
 import { MemoryEngine } from '../memory/engine';
-import { Pattern } from '../types';
 
 export interface AnotsPattern {
   id: string;
@@ -84,9 +83,9 @@ export class AnotsManager {
         name: pattern.name,
         category: this.categorizePattern(pattern.category),
         description: pattern.problem,
-        example: pattern.exampleCode,
-        applicability: pattern.applicability,
-        usageCount: pattern.successCount,
+        example: pattern.example_code ?? '',
+        applicability: pattern.applicability ?? '',
+        usageCount: pattern.success_count,
         lastUsed: Date.now(),
       });
     }
@@ -174,15 +173,14 @@ export class AnotsManager {
 
       // Store in memory engine
       await this.memoryEngine.storePattern({
-        id,
         name: pattern.name,
         category: pattern.category,
         problem: pattern.description,
         solution: pattern.example,
-        exampleCode: pattern.example,
+        example_code: pattern.example,
         applicability: pattern.applicability,
-        successCount: 0,
-        failureCount: 0,
+        success_count: 0,
+        failure_count: 0,
       });
     }
   }
@@ -203,7 +201,7 @@ export class AnotsManager {
     await this.memoryEngine.updatePatternOutcome(patternId, {
       success,
       context: 'anots',
-      timestamp: Date.now(),
+      notes: '',
     });
   }
 
@@ -240,15 +238,14 @@ export class AnotsManager {
 
     // Store in memory engine
     await this.memoryEngine.storePattern({
-      id,
       name: pattern.name,
       category: pattern.category,
       problem: pattern.description,
       solution: pattern.example,
-      exampleCode: pattern.example,
+      example_code: pattern.example,
       applicability: pattern.applicability,
-      successCount: 0,
-      failureCount: 0,
+      success_count: 0,
+      failure_count: 0,
     });
 
     return id;

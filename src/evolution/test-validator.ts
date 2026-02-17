@@ -7,7 +7,7 @@
  * Named after Themis, Greek goddess of divine law and order.
  */
 
-import { RuntimeEngine } from '../runtime';
+import { RuntimeExecutor } from '../runtime/runtime-executor';
 
 /**
  * Test validation result
@@ -97,7 +97,7 @@ export type GeneratedTest = {
  * Uses a separate LLM context to avoid bias.
  */
 export class TestValidator {
-  constructor(private runtimeEngine: RuntimeEngine) {}
+  constructor(private runtimeEngine: RuntimeExecutor) {}
 
   /**
    * Validate a generated test
@@ -207,7 +207,7 @@ export class TestValidator {
       const response = await this.runtimeEngine.execute({
         taskType: 'code_analysis',
         prompt,
-        systemPrompt: `You are Themis, an independent test validator. 
+        context: `You are Themis, an independent test validator. 
 Your job is to critically analyze tests and find issues.
 Be skeptical and thorough. Look for problems.`,
         maxTokens: 800,
@@ -447,7 +447,7 @@ DESCRIPTION: [description]
     // Extract function names from source
     const matches =
       code.match(/(?:function|const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g) || [];
-    return matches.map((m) => m.split(/\s+/)[1]);
+    return matches.map((m) => m.split(/\s+/)[1]).filter((s): s is string => s !== undefined);
   }
 
   private extractImports(code: string): string[] {
@@ -455,7 +455,7 @@ DESCRIPTION: [description]
     return matches.map((m) => {
       const match = m.match(/from\s+['"]([^'"]+)['"]/);
       return match ? match[1] : '';
-    });
+    }).filter((s): s is string => s !== '');
   }
 
   private isTestFrameworkFunction(name: string): boolean {
@@ -496,7 +496,7 @@ DESCRIPTION: [description]
     return stdLib.includes(name);
   }
 
-  private isValidImport(importPath: string, targetPath: string): boolean {
+  private isValidImport(importPath: string, _targetPath: string): boolean {
     // Basic validation - could be enhanced with actual file system checks
     return (
       importPath.startsWith('.') || // Relative import
@@ -512,6 +512,6 @@ DESCRIPTION: [description]
  * @param runtimeEngine - Runtime engine for LLM calls
  * @returns Test validator instance
  */
-export function createTestValidator(runtimeEngine: RuntimeEngine): TestValidator {
+export function createTestValidator(runtimeEngine: RuntimeExecutor): TestValidator {
   return new TestValidator(runtimeEngine);
 }

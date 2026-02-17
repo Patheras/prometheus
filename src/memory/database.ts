@@ -332,22 +332,25 @@ async function runMigrations(db: PrometheusDatabase): Promise<void> {
   
   // Define migrations
   const migrations: Array<{ name: string; up: (db: Database.Database) => void }> = [
-    // Add future migrations here
-    // Example:
-    // {
-    //   name: '001_add_user_behavior_tables',
-    //   up: (db) => {
-    //     db.exec(`
-    //       CREATE TABLE user_events (
-    //         id TEXT PRIMARY KEY,
-    //         timestamp INTEGER NOT NULL,
-    //         event_type TEXT NOT NULL,
-    //         user_id TEXT,
-    //         data TEXT
-    //       );
-    //     `);
-    //   }
-    // }
+    // Migration 001: Add tool_calls and tool_results columns for function calling
+    {
+      name: '001_add_tool_calls_columns',
+      up: (db) => {
+        // Add tool_calls column for storing tool call requests from LLM
+        db.exec(`
+          ALTER TABLE conversation_messages 
+          ADD COLUMN tool_calls TEXT;
+        `);
+        
+        // Add tool_results column for storing tool execution results
+        db.exec(`
+          ALTER TABLE conversation_messages 
+          ADD COLUMN tool_results TEXT;
+        `);
+        
+        console.log('✅ Added tool_calls and tool_results columns to conversation_messages');
+      }
+    }
   ];
   
   // Apply pending migrations

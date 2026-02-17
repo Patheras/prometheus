@@ -6,7 +6,7 @@
  * Task 33.1: Create priority scoring logic
  */
 
-import { RuntimeEngine } from '../runtime';
+import { RuntimeExecutor } from '../runtime/runtime-executor';
 
 /**
  * Task to be scored
@@ -61,7 +61,7 @@ export class PriorityScorer {
   private weights: ScoringWeights;
 
   constructor(
-    private runtimeEngine: RuntimeEngine,
+    private runtimeExecutor: RuntimeExecutor,
     weights?: Partial<ScoringWeights>
   ) {
     this.weights = {
@@ -95,11 +95,11 @@ export class PriorityScorer {
     const prompt = this.buildScoringPrompt(task, context);
 
     try {
-      // Use RuntimeEngine to get LLM scoring
-      const response = await this.runtimeEngine.execute({
+      // Use RuntimeExecutor to get LLM scoring
+      const response = await this.runtimeExecutor.execute({
         taskType: 'decision_making',
         prompt,
-        systemPrompt: 'You are a task prioritization expert. Score tasks objectively.',
+        context: '',
         maxTokens: 300,
       });
 
@@ -225,11 +225,11 @@ export class PriorityScorer {
     const effortMatch = response.match(/Effort:\s*(\d+)/i);
     const alignmentMatch = response.match(/Alignment:\s*(\d+)/i);
 
-    if (impactMatch) breakdown.impact = Math.min(100, Math.max(0, parseInt(impactMatch[1])));
-    if (urgencyMatch) breakdown.urgency = Math.min(100, Math.max(0, parseInt(urgencyMatch[1])));
-    if (effortMatch) breakdown.effort = Math.min(100, Math.max(0, parseInt(effortMatch[1])));
+    if (impactMatch) breakdown.impact = Math.min(100, Math.max(0, parseInt(impactMatch[1]!)));
+    if (urgencyMatch) breakdown.urgency = Math.min(100, Math.max(0, parseInt(urgencyMatch[1]!)));
+    if (effortMatch) breakdown.effort = Math.min(100, Math.max(0, parseInt(effortMatch[1]!)));
     if (alignmentMatch)
-      breakdown.alignment = Math.min(100, Math.max(0, parseInt(alignmentMatch[1])));
+      breakdown.alignment = Math.min(100, Math.max(0, parseInt(alignmentMatch[1]!)));
 
     return breakdown;
   }
@@ -338,13 +338,13 @@ export class PriorityScorer {
 /**
  * Create a priority scorer instance
  * 
- * @param runtimeEngine - Runtime engine for LLM calls
+ * @param runtimeExecutor - Runtime executor for LLM calls
  * @param weights - Optional custom scoring weights
  * @returns Priority scorer instance
  */
 export function createPriorityScorer(
-  runtimeEngine: RuntimeEngine,
+  runtimeExecutor: RuntimeExecutor,
   weights?: Partial<ScoringWeights>
 ): PriorityScorer {
-  return new PriorityScorer(runtimeEngine, weights);
+  return new PriorityScorer(runtimeExecutor, weights);
 }

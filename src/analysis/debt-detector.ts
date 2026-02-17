@@ -172,10 +172,12 @@ export class DebtDetector {
 
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
+          if (!line) continue;
           const todoMatch = line.match(/\/\/\s*(TODO|FIXME|HACK|XXX):\s*(.+)/i);
 
           if (todoMatch) {
             const [, type, description] = todoMatch;
+            if (!type || !description) continue;
             const priority = type.toUpperCase() === 'FIXME' ? 4 : 2;
 
             items.push({
@@ -438,7 +440,9 @@ export class DebtDetector {
     let match;
 
     while ((match = importRegex.exec(content)) !== null) {
-      imports.push(match[1]);
+      if (match[1]) {
+        imports.push(match[1]);
+      }
     }
 
     return imports;

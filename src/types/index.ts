@@ -431,6 +431,24 @@ export interface PrometheusConfig {
     enabled: boolean;
     port: number;
   };
+  tools?: {
+    enabled: boolean;
+    maxIterations: number;
+    timeout: number;
+    rateLimit: {
+      maxCallsPerWindow: number;
+      windowMs: number;
+    };
+    circuitBreaker: {
+      enabled: boolean;
+      failureThreshold: number;
+      cooldownMs: number;
+    };
+    security: {
+      validationEnabled: boolean;
+      auditLoggingEnabled: boolean;
+    };
+  };
 }
 
 export interface LLMProviderConfig {

@@ -39,11 +39,9 @@ export class RepositoryContextManager {
   private currentContext: RepositoryContext | null = null;
   private contextStack: ContextStackEntry[] = [];
   private contextHistory: RepositoryContext[] = [];
-  private memoryEngine: MemoryEngine;
   private prometheusRepoPath: string;
 
-  constructor(memoryEngine: MemoryEngine, prometheusRepoPath: string) {
-    this.memoryEngine = memoryEngine;
+  constructor(_memoryEngine: MemoryEngine, prometheusRepoPath: string) {
     this.prometheusRepoPath = prometheusRepoPath;
   }
 
@@ -413,7 +411,7 @@ export class ContextAwareOperation<T> {
  * 
  * Ensures methods are called with the correct repository context
  */
-export function requireContext(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export function requireContext(_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
 
   descriptor.value = function (this: any, ...args: any[]) {
@@ -434,8 +432,8 @@ export function requireContext(target: any, propertyKey: string, descriptor: Pro
  * Prevent Prometheus modification decorator
  */
 export function preventPrometheusModification(
-  target: any,
-  propertyKey: string,
+  _target: any,
+  _propertyKey: string,
   descriptor: PropertyDescriptor
 ) {
   const originalMethod = descriptor.value;

@@ -9,7 +9,7 @@
  * - Validation and quality checks
  */
 
-import { PromotionRequest, ChangeDescription, TestResults, ImpactAssessment, RollbackPlan } from './dev-prod-manager';
+import { ChangeDescription, TestResults, ImpactAssessment, RollbackPlan } from './dev-prod-manager';
 import { SelfImprovementTask } from './self-improvement-workflow';
 
 export interface PromotionRequestTemplate {
@@ -197,7 +197,7 @@ export class PromotionRequestBuilder {
       errors.push('Rollback plan is required');
     } else {
       // Warnings for complex rollbacks
-      if (this.template.rollbackPlan.rollbackComplexity === 'complex') {
+      if (this.template.impactAssessment?.rollbackComplexity === 'complex') {
         warnings.push('Rollback is complex - ensure backup is available');
       }
 

@@ -54,6 +54,24 @@ export function loadConfig(): PrometheusConfig {
       enabled: process.env['ENABLE_METRICS'] === 'true',
       port: parseInt(process.env['METRICS_PORT'] || '9090', 10),
     },
+    tools: {
+      enabled: process.env['TOOL_CALLING_ENABLED'] !== 'false', // Default: true
+      maxIterations: parseInt(process.env['TOOL_MAX_ITERATIONS'] || '10', 10),
+      timeout: parseInt(process.env['TOOL_TIMEOUT_MS'] || '30000', 10),
+      rateLimit: {
+        maxCallsPerWindow: parseInt(process.env['TOOL_RATE_LIMIT_CALLS'] || '50', 10),
+        windowMs: parseInt(process.env['TOOL_RATE_LIMIT_WINDOW_MS'] || '60000', 10),
+      },
+      circuitBreaker: {
+        enabled: process.env['TOOL_CIRCUIT_BREAKER_ENABLED'] !== 'false', // Default: true
+        failureThreshold: parseInt(process.env['TOOL_CIRCUIT_BREAKER_THRESHOLD'] || '3', 10),
+        cooldownMs: parseInt(process.env['TOOL_CIRCUIT_BREAKER_COOLDOWN_MS'] || '60000', 10),
+      },
+      security: {
+        validationEnabled: process.env['TOOL_SECURITY_VALIDATION'] !== 'false', // Default: true
+        auditLoggingEnabled: process.env['TOOL_AUDIT_LOGGING'] !== 'false', // Default: true
+      },
+    },
   };
 }
 

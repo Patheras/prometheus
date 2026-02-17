@@ -11,7 +11,6 @@
 
 import { DevProdManager } from './dev-prod-manager';
 import { MemoryEngine } from '../memory/engine';
-import * as path from 'path';
 
 export interface EnvironmentConfig {
   name: 'dev' | 'prod';
@@ -70,7 +69,6 @@ export interface ResourceUsage {
  */
 export class DevEnvironmentIsolation {
   private devProdManager: DevProdManager;
-  private memoryEngine: MemoryEngine;
   private devConfig: EnvironmentConfig;
   private prodConfig: EnvironmentConfig;
   private currentEnvironment: 'dev' | 'prod' = 'dev';
@@ -78,12 +76,11 @@ export class DevEnvironmentIsolation {
 
   constructor(
     devProdManager: DevProdManager,
-    memoryEngine: MemoryEngine,
+    _memoryEngine: MemoryEngine,
     devConfig: EnvironmentConfig,
     prodConfig: EnvironmentConfig
   ) {
     this.devProdManager = devProdManager;
-    this.memoryEngine = memoryEngine;
     this.devConfig = devConfig;
     this.prodConfig = prodConfig;
 
@@ -275,9 +272,6 @@ export class DevEnvironmentIsolation {
     console.log(`[EnvIsolation] Command: ${command}`);
     console.log(`[EnvIsolation] Working directory: ${config.repoPath}`);
     console.log(`[EnvIsolation] Database: ${config.databasePath}`);
-
-    // Create test context
-    const context = this.createTestContext(environment);
 
     // Verify isolation before running tests
     const isolationStatus = await this.verifyIsolation(environment);

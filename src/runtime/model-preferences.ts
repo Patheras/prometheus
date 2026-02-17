@@ -13,51 +13,53 @@ import { TaskType, ModelRef, ModelPreferences } from './types.js';
  */
 export const TASK_TYPE_PREFERENCES: Record<TaskType, ModelRef[]> = {
   [TaskType.CODE_ANALYSIS]: [
+    { provider: 'google', model: 'gemini-3-pro-preview' },  // Best for code analysis with Deep Think
+    { provider: 'azure-openai', model: 'gpt-5.1-codex-mini' },  // Codex for code understanding
     { provider: 'anthropic', model: 'claude-sonnet-4' },
     { provider: 'openai', model: 'gpt-4-turbo' },
-    { provider: 'anthropic', model: 'claude-opus-4' },
-    { provider: 'google', model: 'gemini-2.0-flash-exp' }
+    { provider: 'google', model: 'gemini-2.5-pro' }
   ],
   
   [TaskType.DECISION_MAKING]: [
     { provider: 'anthropic', model: 'claude-opus-4' },
     { provider: 'openai', model: 'o1' },
-    { provider: 'anthropic', model: 'claude-sonnet-4' },
-    { provider: 'openai', model: 'gpt-4-turbo' }
+    { provider: 'google', model: 'gemini-3-pro-preview' },
+    { provider: 'anthropic', model: 'claude-sonnet-4' }
   ],
   
   [TaskType.PATTERN_MATCHING]: [
+    { provider: 'google', model: 'gemini-3-pro-preview' },  // Excellent for pattern recognition
     { provider: 'anthropic', model: 'claude-sonnet-4' },
     { provider: 'openai', model: 'gpt-4o' },
-    { provider: 'anthropic', model: 'claude-opus-4' },
-    { provider: 'google', model: 'gemini-2.0-flash-exp' }
+    { provider: 'google', model: 'gemini-2.5-pro' }
   ],
   
   [TaskType.METRIC_ANALYSIS]: [
     { provider: 'openai', model: 'o1-mini' },
     { provider: 'anthropic', model: 'claude-sonnet-4' },
     { provider: 'openai', model: 'gpt-4o' },
-    { provider: 'google', model: 'gemini-2.0-flash-exp' }
+    { provider: 'google', model: 'gemini-2.5-pro' }
   ],
   
   [TaskType.REFACTORING]: [
+    { provider: 'google', model: 'gemini-3-pro-preview' },  // Best for agentic coding
+    { provider: 'azure-openai', model: 'gpt-5.1-codex-mini' },  // Codex for code generation
     { provider: 'anthropic', model: 'claude-sonnet-4' },
     { provider: 'anthropic', model: 'claude-opus-4' },
-    { provider: 'openai', model: 'gpt-4-turbo' },
-    { provider: 'google', model: 'gemini-2.0-flash-exp' }
+    { provider: 'google', model: 'gemini-2.5-pro' }
   ],
   
   [TaskType.CONSULTATION]: [
     { provider: 'anthropic', model: 'claude-opus-4' },
     { provider: 'anthropic', model: 'claude-sonnet-4' },
-    { provider: 'openai', model: 'gpt-4o' },
-    { provider: 'openai', model: 'o1' }
+    { provider: 'google', model: 'gemini-3-pro-preview' },
+    { provider: 'openai', model: 'gpt-4o' }
   ],
   
   [TaskType.GENERAL]: [
+    { provider: 'google', model: 'gemini-2.5-pro' },  // Large context for general tasks
     { provider: 'anthropic', model: 'claude-sonnet-4' },
     { provider: 'openai', model: 'gpt-4o' },
-    { provider: 'google', model: 'gemini-2.0-flash-exp' },
     { provider: 'anthropic', model: 'claude-haiku-4' }
   ]
 };

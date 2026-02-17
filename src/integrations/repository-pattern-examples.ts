@@ -16,7 +16,6 @@ export async function example1_analyzeRepository() {
   console.log('\n=== Example 1: Analyze Repository Patterns ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -28,11 +27,11 @@ export async function example1_analyzeRepository() {
   await repoManager.addRepository({
     id: 'my-app',
     provider: 'github',
-    url: 'https://github.com/myorg/my-app',
+    reporepoUrl: 'https://github.com/myorg/my-app',
     localPath: '/path/to/my-app',
     auth: {
       type: 'token',
-      token: process.env.GITHUB_TOKEN!,
+      token: process.env['GITHUB_TOKEN']!,
     },
   });
 
@@ -66,7 +65,6 @@ export async function example2_getConventions() {
   console.log('\n=== Example 2: Get High-Confidence Conventions ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -96,7 +94,6 @@ export async function example3_checkViolations() {
   console.log('\n=== Example 3: Check Pattern Violations ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -129,7 +126,6 @@ export async function example4_getRecommendations() {
   console.log('\n=== Example 4: Get Improvement Recommendations ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -152,7 +148,6 @@ export async function example5_compareRepositories() {
   console.log('\n=== Example 5: Compare Repository Patterns ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -191,7 +186,6 @@ export async function example6_trackEvolution() {
   console.log('\n=== Example 6: Track Pattern Evolution ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -226,7 +220,6 @@ export async function example7_guideCodeGeneration() {
   console.log('\n=== Example 7: Use Patterns to Guide Code Generation ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -267,7 +260,6 @@ export async function example8_integrateWithWorkflow() {
   console.log('\n=== Example 8: Integrate Pattern Tracking with Workflow ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -278,11 +270,11 @@ export async function example8_integrateWithWorkflow() {
   await repoManager.addRepository({
     id: 'my-app',
     provider: 'github',
-    url: 'https://github.com/myorg/my-app',
+    reporepoUrl: 'https://github.com/myorg/my-app',
     localPath: '/path/to/my-app',
     auth: {
       type: 'token',
-      token: process.env.GITHUB_TOKEN!,
+      token: process.env['GITHUB_TOKEN']!,
     },
   });
 
@@ -322,7 +314,6 @@ export async function example9_exportPatterns() {
   console.log('\n=== Example 9: Export Patterns for Documentation ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -375,7 +366,6 @@ export async function example10_monitorConsistency() {
   console.log('\n=== Example 10: Monitor Pattern Consistency ===\n');
 
   const memoryEngine = new MemoryEngine({
-    dbPath: './data/prometheus.db',
     embeddingProvider: 'openai',
   });
 
@@ -438,3 +428,6 @@ if (require.main === module) {
     }
   })();
 }
+
+
+

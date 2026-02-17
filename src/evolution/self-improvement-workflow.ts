@@ -10,10 +10,7 @@
 
 import { DevProdManager, PromotionRequest, ChangeDescription, TestResults, ImpactAssessment, RollbackPlan } from './dev-prod-manager';
 import { RepositoryWorkflow } from '../integrations/repository-workflow';
-import { AnalysisEngine } from '../analysis/engine';
 import { MemoryEngine } from '../memory/engine';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 
 export interface SelfImprovementTask {
   id: string;
@@ -56,7 +53,6 @@ export interface WorkflowConfig {
 export class SelfImprovementWorkflow {
   private devProdManager: DevProdManager;
   private devWorkflow: RepositoryWorkflow;
-  private analysisEngine: AnalysisEngine;
   private memoryEngine: MemoryEngine;
   private config: WorkflowConfig;
   private tasks: Map<string, SelfImprovementTask> = new Map();
@@ -65,13 +61,11 @@ export class SelfImprovementWorkflow {
   constructor(
     devProdManager: DevProdManager,
     devWorkflow: RepositoryWorkflow,
-    analysisEngine: AnalysisEngine,
     memoryEngine: MemoryEngine,
     config: WorkflowConfig
   ) {
     this.devProdManager = devProdManager;
     this.devWorkflow = devWorkflow;
-    this.analysisEngine = analysisEngine;
     this.memoryEngine = memoryEngine;
     this.config = config;
   }
@@ -131,7 +125,7 @@ export class SelfImprovementWorkflow {
 
     // Create branch for this task
     const branchName = this.generateBranchName(task);
-    await this.devWorkflow.createBranch(branchName);
+    await this.devWorkflow.createFeatureBranch(branchName);
 
     // Update task
     task.status = 'in_progress';
@@ -573,7 +567,7 @@ export class SelfImprovementWorkflow {
   private extractComponentFromPath(filePath: string): string | null {
     const parts = filePath.split('/');
     if (parts.length >= 2 && parts[0] === 'src') {
-      return parts[1];
+      return parts[1] ?? null;
     }
     return null;
   }
@@ -581,7 +575,7 @@ export class SelfImprovementWorkflow {
   /**
    * Get file statistics (simplified)
    */
-  private async getFileStats(filePath: string): Promise<{
+  private async getFileStats(_filePath: string): Promise<{
     type: 'added' | 'modified' | 'deleted';
     linesAdded: number;
     linesRemoved: number;
@@ -608,7 +602,7 @@ export class SelfImprovementWorkflow {
   /**
    * Parse test count from output
    */
-  private parseTestCount(output: string): number {
+  private parseTestCount(_output: string): number {
     // Simplified - real implementation would parse actual test output
     return 100;
   }
@@ -632,11 +626,14 @@ export class SelfImprovementWorkflow {
         problem: task.title,
         solution: task.description,
         example_code: JSON.stringify(task.changes || []),
-        applicability: `Status: ${task.status}, Priority: ${task.priority}`,
-        metadata: {
+        applicability: JSON.stringify({
+          status: task.status,
+          priority: task.priority,
           taskId: task.id,
           taskData: task,
-        },
+        }),
+        success_count: 0,
+        failure_count: 0,
       });
     } catch (error) {
       console.error('Failed to store task:', error);
@@ -651,9 +648,16 @@ export class SelfImprovementWorkflow {
       const results = await this.memoryEngine.searchPatterns('self-improvement-task');
 
       for (const result of results) {
-        if (result.category === 'self-improvement-task' && result.metadata?.taskData) {
-          const task = result.metadata.taskData as SelfImprovementTask;
-          this.tasks.set(task.id, task);
+        if (result.category === 'self-improvement-task' && result.applicability) {
+          try {
+            const applicabilityData = JSON.parse(result.applicability);
+            if (applicabilityData.taskData) {
+              const task = applicabilityData.taskData as SelfImprovementTask;
+              this.tasks.set(task.id, task);
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
         }
       }
 

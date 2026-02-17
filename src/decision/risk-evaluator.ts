@@ -8,7 +8,7 @@
  * Task 34.3: Implement high-risk consultation requirement
  */
 
-import { RuntimeEngine } from '../runtime';
+import { RuntimeExecutor } from '../runtime/runtime-executor';
 
 /**
  * Risk severity levels
@@ -68,7 +68,7 @@ export type Decision = {
  * Identifies risks and suggests mitigation strategies for decisions.
  */
 export class RiskEvaluator {
-  constructor(private runtimeEngine: RuntimeEngine) {}
+  constructor(private runtimeEngine: RuntimeExecutor) {}
 
   /**
    * Evaluate risks for a decision
@@ -118,7 +118,7 @@ export class RiskEvaluator {
       const response = await this.runtimeEngine.execute({
         taskType: 'decision_making',
         prompt,
-        systemPrompt: 'You are a risk assessment expert. Identify potential risks objectively.',
+        context: 'You are a risk assessment expert. Identify potential risks objectively.',
         maxTokens: 500,
       });
 
@@ -155,7 +155,7 @@ export class RiskEvaluator {
       const response = await this.runtimeEngine.execute({
         taskType: 'decision_making',
         prompt,
-        systemPrompt: 'You are a risk mitigation expert. Suggest practical mitigation strategies.',
+        context: 'You are a risk mitigation expert. Suggest practical mitigation strategies.',
         maxTokens: 400,
       });
 
@@ -274,13 +274,16 @@ export class RiskEvaluator {
   /**
    * Build mitigation strategy prompt
    */
-  private buildMitigationPrompt(risks: Risk[], decision: Decision): string {
+  private buildMitigationPrompt(risks: Risk[], _decision: Decision): string {
     let prompt = `Suggest mitigation strategies for these risks:\n\n`;
 
     for (let i = 0; i < risks.length; i++) {
-      prompt += `Risk ${i + 1}: ${risks[i].description}\n`;
-      prompt += `Severity: ${risks[i].severity}\n`;
-      prompt += `Likelihood: ${risks[i].likelihood}%\n\n`;
+      const risk = risks[i];
+      if (!risk) continue;
+      
+      prompt += `Risk ${i + 1}: ${risk.description}\n`;
+      prompt += `Severity: ${risk.severity}\n`;
+      prompt += `Likelihood: ${risk.likelihood}%\n\n`;
     }
 
     prompt += `For each risk, provide:\n`;
@@ -311,12 +314,12 @@ export class RiskEvaluator {
       const severityMatch = block.match(/SEVERITY:\s*(low|medium|high|critical)/i);
       const categoryMatch = block.match(/CATEGORY:\s*(.+)/i);
 
-      if (descMatch && severityMatch) {
+      if (descMatch?.[1] && severityMatch?.[1]) {
         risks.push({
           description: descMatch[1].trim(),
-          likelihood: likelihoodMatch ? parseInt(likelihoodMatch[1]) : 50,
+          likelihood: likelihoodMatch?.[1] ? parseInt(likelihoodMatch[1]) : 50,
           severity: severityMatch[1].toLowerCase() as RiskSeverity,
-          category: categoryMatch ? categoryMatch[1].trim() : 'general',
+          category: categoryMatch?.[1]?.trim() || 'general',
         });
       }
     }
@@ -329,7 +332,7 @@ export class RiskEvaluator {
    */
   private parseMitigationStrategies(
     response: string,
-    risks: Risk[]
+    _risks: Risk[]
   ): MitigationStrategy[] {
     const strategies: MitigationStrategy[] = [];
     const strategyBlocks = response.split('---').filter((block) => block.trim());
@@ -340,12 +343,12 @@ export class RiskEvaluator {
       const effortMatch = block.match(/EFFORT:\s*(\d+\.?\d*)/i);
       const effectivenessMatch = block.match(/EFFECTIVENESS:\s*(\d+)/i);
 
-      if (riskMatch && strategyMatch) {
+      if (riskMatch?.[1] && strategyMatch?.[1]) {
         strategies.push({
           risk: riskMatch[1].trim(),
           strategy: strategyMatch[1].trim(),
-          effort: effortMatch ? parseFloat(effortMatch[1]) : 2,
-          effectiveness: effectivenessMatch ? parseInt(effectivenessMatch[1]) : 70,
+          effort: effortMatch?.[1] ? parseFloat(effortMatch[1]) : 2,
+          effectiveness: effectivenessMatch?.[1] ? parseInt(effectivenessMatch[1]) : 70,
         });
       }
     }
@@ -437,7 +440,7 @@ export class RiskEvaluator {
       general: 'Review changes carefully and test thoroughly',
     };
 
-    return mitigations[category] || mitigations.general;
+    return mitigations[category] ?? mitigations['general'] ?? 'Review changes carefully and test thoroughly';
   }
 
   /**
@@ -470,6 +473,6 @@ export class RiskEvaluator {
  * @param runtimeEngine - Runtime engine for LLM calls
  * @returns Risk evaluator instance
  */
-export function createRiskEvaluator(runtimeEngine: RuntimeEngine): RiskEvaluator {
+export function createRiskEvaluator(runtimeEngine: RuntimeExecutor): RiskEvaluator {
   return new RiskEvaluator(runtimeEngine);
 }

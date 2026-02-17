@@ -17,10 +17,13 @@ describe('SelfImprovementWorkflow', () => {
   let config: WorkflowConfig;
 
   beforeEach(() => {
-    memoryEngine = new MemoryEngine({
-      dbPath: ':memory:',
-      embeddingProvider: 'mock',
-    });
+    // Mock MemoryEngine instead of creating real instance
+    memoryEngine = {
+      storePattern: jest.fn().mockResolvedValue('pattern-123'),
+      searchPatterns: jest.fn().mockResolvedValue([]),
+      storeMetrics: jest.fn().mockResolvedValue(undefined),
+      close: jest.fn().mockResolvedValue(undefined),
+    } as any;
 
     // Mock dependencies
     devProdManager = {
@@ -57,7 +60,7 @@ describe('SelfImprovementWorkflow', () => {
   });
 
   afterEach(async () => {
-    await memoryEngine.close();
+    // No need to close mock
   });
 
   describe('Task Creation', () => {

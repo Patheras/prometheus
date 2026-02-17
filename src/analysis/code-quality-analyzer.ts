@@ -9,7 +9,6 @@
  */
 
 import * as ts from 'typescript';
-import { createHash } from 'crypto';
 import { randomUUID } from 'crypto';
 import {
   QualityIssue,
@@ -258,7 +257,7 @@ export class CodeQualityAnalyzer {
       }
 
       // TODO/FIXME comments
-      const sourceText = node.getFullText(this.sourceFile);
+      const sourceText = node.getFullText(this.sourceFile || undefined);
       const todoMatch = sourceText.match(/\/\/\s*(TODO|FIXME|HACK|XXX):/i);
       if (todoMatch) {
         const { line } = this.sourceFile!.getLineAndCharacterOfPosition(node.getStart());

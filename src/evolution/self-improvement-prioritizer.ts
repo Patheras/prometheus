@@ -8,8 +8,7 @@
  */
 
 import type { Improvement } from '../types';
-import type { Task as BaseTask, PriorityScore } from '../decision/priority-scorer';
-import { createPriorityScorer, type PriorityScorer } from '../decision/priority-scorer';
+import type { Task as BaseTask, PriorityScore, PriorityScorer } from '../decision/priority-scorer';
 
 // Extended Task type with effort hours
 export type Task = BaseTask & {
@@ -60,8 +59,8 @@ export class SelfImprovementPrioritizer {
   private roiHistory: Map<string, SelfImprovementROI> = new Map();
 
   constructor(
-    config?: Partial<SelfImprovementPrioritizationConfig>,
-    priorityScorer?: PriorityScorer
+    priorityScorer: PriorityScorer,
+    config?: Partial<SelfImprovementPrioritizationConfig>
   ) {
     this.config = {
       maxSelfImprovementRatio: config?.maxSelfImprovementRatio ?? 0.2, // 20% max
@@ -69,7 +68,7 @@ export class SelfImprovementPrioritizer {
       highImpactBoost: config?.highImpactBoost ?? 1.5,
     };
 
-    this.priorityScorer = priorityScorer ?? createPriorityScorer();
+    this.priorityScorer = priorityScorer;
   }
 
   /**
@@ -117,20 +116,21 @@ export class SelfImprovementPrioritizer {
       });
 
       // Always include at least the top self-improvement if it has very high ROI (>= 10)
-      const topROI = roiMap.get(sortedByROI[0]?.id)?.roi ?? 0;
-      if (topROI >= 10.0) {
+      const topImprovement = sortedByROI[0];
+      const topROI = topImprovement ? (roiMap.get(topImprovement.id)?.roi ?? 0) : 0;
+      if (topROI >= 10.0 && topImprovement) {
         // Include top improvement regardless of ratio
-        selectedSelfImprovements = [sortedByROI[0]];
+        selectedSelfImprovements = [topImprovement];
         
         // Try to add more if they fit within an expanded ratio
         const effectiveMaxRatio = Math.min(0.4, this.config.maxSelfImprovementRatio * 2);
         const maxSelfImprovementEffort =
           (totalProjectEffort * effectiveMaxRatio) / (1 - effectiveMaxRatio);
         
-        let currentEffort = sortedByROI[0].effortHours;
+        let currentEffort = topImprovement.effortHours;
         for (let i = 1; i < sortedByROI.length; i++) {
           const task = sortedByROI[i];
-          if (currentEffort + task.effortHours <= maxSelfImprovementEffort) {
+          if (task && currentEffort + task.effortHours <= maxSelfImprovementEffort) {
             selectedSelfImprovements.push(task);
             currentEffort += task.effortHours;
           }
@@ -159,8 +159,8 @@ export class SelfImprovementPrioritizer {
         // High impact - boost priority
         return {
           ...task,
-          metadata: {
-            ...task.metadata,
+          context: {
+            ...(task.context || {}),
             boosted: true,
             originalImpact: roi.estimatedBenefit,
             boostedImpact: roi.estimatedBenefit * this.config.highImpactBoost,
@@ -505,5 +505,5 @@ export function createSelfImprovementPrioritizer(
   config?: Partial<SelfImprovementPrioritizationConfig>,
   priorityScorer?: PriorityScorer
 ): SelfImprovementPrioritizer {
-  return new SelfImprovementPrioritizer(config, priorityScorer);
+  return new SelfImprovementPrioritizer(priorityScorer!, config);
 }

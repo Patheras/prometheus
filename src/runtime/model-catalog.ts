@@ -11,6 +11,43 @@ import { ModelRef, ModelCatalogEntry, ModelCapabilities, ModelCharacteristics } 
  * Model catalog containing all available models
  */
 export const MODEL_CATALOG: Record<string, Record<string, ModelCatalogEntry>> = {
+  'azure-openai': {
+    'gpt-oss-120b': {
+      ref: { provider: 'azure-openai', model: 'gpt-oss-120b' },
+      contextWindow: 128000,
+      capabilities: {
+        code: true,
+        reasoning: true,
+        general: true,
+        vision: false,
+        tools: true
+      },
+      characteristics: {
+        costTier: 'premium',
+        speedTier: 'fast',
+        qualityTier: 'premium'
+      },
+      description: 'Azure OpenAI GPT-OSS-120B with advanced reasoning capabilities'
+    },
+    'gpt-5.1-codex-mini': {
+      ref: { provider: 'azure-openai', model: 'gpt-5.1-codex-mini' },
+      contextWindow: 128000,
+      capabilities: {
+        code: true,
+        reasoning: true,
+        general: true,
+        vision: false,
+        tools: true
+      },
+      characteristics: {
+        costTier: 'high',
+        speedTier: 'fast',
+        qualityTier: 'premium'
+      },
+      description: 'Azure OpenAI Codex optimized for code generation and analysis'
+    }
+  },
+  
   anthropic: {
     'claude-opus-4': {
       ref: { provider: 'anthropic', model: 'claude-opus-4' },
@@ -154,8 +191,8 @@ export const MODEL_CATALOG: Record<string, Record<string, ModelCatalogEntry>> = 
   },
   
   google: {
-    'gemini-2.0-flash-exp': {
-      ref: { provider: 'google', model: 'gemini-2.0-flash-exp' },
+    'gemini-3-pro-preview': {
+      ref: { provider: 'google', model: 'gemini-3-pro-preview' },
       contextWindow: 1000000,
       capabilities: {
         code: true,
@@ -165,14 +202,14 @@ export const MODEL_CATALOG: Record<string, Record<string, ModelCatalogEntry>> = 
         tools: true
       },
       characteristics: {
-        costTier: 'medium',
-        speedTier: 'fast',
-        qualityTier: 'high'
+        costTier: 'premium',
+        speedTier: 'medium',
+        qualityTier: 'premium'
       },
-      description: 'Experimental Gemini model with massive context window'
+      description: 'Most intelligent Gemini model with Deep Think reasoning and agentic capabilities'
     },
-    'gemini-1.5-pro': {
-      ref: { provider: 'google', model: 'gemini-1.5-pro' },
+    'gemini-2.5-pro': {
+      ref: { provider: 'google', model: 'gemini-2.5-pro' },
       contextWindow: 2000000,
       capabilities: {
         code: true,
@@ -183,27 +220,10 @@ export const MODEL_CATALOG: Record<string, Record<string, ModelCatalogEntry>> = 
       },
       characteristics: {
         costTier: 'high',
-        speedTier: 'medium',
-        qualityTier: 'high'
-      },
-      description: 'Pro model with extremely large context window'
-    },
-    'gemini-1.5-flash': {
-      ref: { provider: 'google', model: 'gemini-1.5-flash' },
-      contextWindow: 1000000,
-      capabilities: {
-        code: true,
-        reasoning: false,
-        general: true,
-        vision: true,
-        tools: true
-      },
-      characteristics: {
-        costTier: 'low',
         speedTier: 'fast',
-        qualityTier: 'standard'
+        qualityTier: 'premium'
       },
-      description: 'Fast model with large context window'
+      description: 'Latest Gemini model with 2M token context and simulated reasoning'
     }
   }
 };

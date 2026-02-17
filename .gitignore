@@ -48,3 +48,7 @@ pnpm-debug.log*
 tmp/
 temp/
 *.tmp
+
+# Browser data (Playwright/Hermes profiles)
+browser-data/
+.browser-data/

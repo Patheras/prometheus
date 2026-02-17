@@ -93,7 +93,7 @@ export class AnotsConnector {
     console.log(`Cloning ANOTS repository from ${this.config.repoUrl}...`);
     
     try {
-      const { stdout, stderr } = await execAsync(
+      const { stderr } = await execAsync(
         `git clone --branch ${this.config.branch} ${this.config.repoUrl} ${this.config.localPath}`
       );
       
@@ -114,7 +114,7 @@ export class AnotsConnector {
     console.log('Indexing ANOTS codebase...');
     
     try {
-      await this.memoryEngine.indexCodebase(this.config.localPath, 'anots');
+      await this.memoryEngine.indexCodebase(this.config.localPath);
       
       // Store current commit hash
       this.lastCommitHash = await this.getCurrentCommitHash();
@@ -244,7 +244,7 @@ export class AnotsConnector {
    */
   async pullChanges(): Promise<void> {
     try {
-      const { stdout, stderr } = await execAsync(
+      const { stderr } = await execAsync(
         `git pull origin ${this.config.branch}`,
         { cwd: this.config.localPath }
       );
@@ -268,7 +268,7 @@ export class AnotsConnector {
   private async handleFileChange(filePath: string): Promise<void> {
     try {
       // Use delta sync to update only this file
-      await this.memoryEngine.syncCodebase(this.config.localPath, 'anots');
+      await this.memoryEngine.indexCodebase(this.config.localPath);
     } catch (error) {
       console.error(`Error handling file change for ${filePath}:`, error);
     }

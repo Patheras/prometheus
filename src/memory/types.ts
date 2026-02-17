@@ -207,6 +207,21 @@ export interface ConversationMessage {
   content: string;
   timestamp: number;
   metadata: string | null; // JSON object
+  tool_calls?: string | null; // JSON array of tool calls
+  tool_results?: string | null; // JSON array of tool results
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, any>;
+}
+
+export interface ToolResult {
+  toolCallId: string;
+  result: any;
+  success: boolean;
+  executionTime: number;
 }
 
 export interface ConversationMessageMetadata {

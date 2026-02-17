@@ -193,14 +193,29 @@ export interface IMemoryEngine {
    * @param role Message role (user, assistant, system)
    * @param content Message content
    * @param metadata Optional metadata
+   * @param toolCalls Optional array of tool calls
    * @returns Promise with the message ID
    */
   storeMessage(
     conversationId: string,
     role: 'user' | 'assistant' | 'system',
     content: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
+    toolCalls?: Array<{ id: string; name: string; arguments: Record<string, any> }>
   ): Promise<string>;
+  
+  /**
+   * Store tool execution result
+   * @param conversationId Conversation ID
+   * @param toolCallId Tool call ID
+   * @param result Tool execution result
+   * @returns Promise that resolves when storage is complete
+   */
+  storeToolResult(
+    conversationId: string,
+    toolCallId: string,
+    result: any
+  ): Promise<void>;
   
   /**
    * Get conversation history
@@ -211,6 +226,19 @@ export interface IMemoryEngine {
   getConversationHistory(
     conversationId: string,
     limit?: number
+  ): Promise<ConversationMessage[]>;
+  
+  /**
+   * Get conversation history with token limit
+   * @param conversationId Conversation ID
+   * @param tokenLimit Maximum number of tokens
+   * @param estimateTokens Function to estimate tokens for a message
+   * @returns Promise with array of messages that fit within token limit
+   */
+  getConversationHistoryWithTokenLimit(
+    conversationId: string,
+    tokenLimit: number,
+    estimateTokens: (message: ConversationMessage) => number
   ): Promise<ConversationMessage[]>;
   
   /**
@@ -869,6 +897,10 @@ export class MemoryEngine implements IMemoryEngine {
   // ========== Pattern Memory Operations ==========
   
   async storePattern(pattern: Omit<Pattern, 'id'>): Promise<string> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    
     const dbInstance = this.db.getDb();
     const id = this.generateId('pattern');
     
@@ -953,12 +985,15 @@ export class MemoryEngine implements IMemoryEngine {
    * 
    * The JSONL file serves as the source of truth and can be
    * automatically re-indexed by the memory system.
+   * 
+   * Requirements: 4.1 - Store tool call messages with their arguments
    */
   async storeMessage(
     conversationId: string,
     role: 'user' | 'assistant' | 'system',
     content: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
+    toolCalls?: Array<{ id: string; name: string; arguments: Record<string, any> }>
   ): Promise<string> {
     const dbInstance = this.db.getDb();
     
@@ -974,12 +1009,20 @@ export class MemoryEngine implements IMemoryEngine {
     const id = this.generateId('msg');
     const now = Date.now();
     
+    // Serialize tool calls to JSON if provided (Requirement 4.1)
+    const toolCallsJson = toolCalls && toolCalls.length > 0 
+      ? JSON.stringify(toolCalls) 
+      : null;
+    
     // 1. Write to JSONL file (primary storage - OpenClaw pattern)
     const jsonlMessage: JSONLMessage = {
       role,
       content,
       timestamp: now,
-      metadata,
+      metadata: {
+        ...metadata,
+        ...(toolCallsJson ? { toolCalls: toolCalls } : {})
+      },
     };
     
     try {
@@ -992,8 +1035,8 @@ export class MemoryEngine implements IMemoryEngine {
     // 2. Write to SQLite (indexed storage)
     dbInstance
       .prepare(`
-        INSERT INTO conversation_messages (id, conversation_id, role, content, timestamp, metadata)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO conversation_messages (id, conversation_id, role, content, timestamp, metadata, tool_calls)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `)
       .run(
         id,
@@ -1001,7 +1044,8 @@ export class MemoryEngine implements IMemoryEngine {
         role,
         content,
         now,
-        metadata ? JSON.stringify(metadata) : null
+        metadata ? JSON.stringify(metadata) : null,
+        toolCallsJson
       );
     
     // Update conversation updated_at
@@ -1013,7 +1057,84 @@ export class MemoryEngine implements IMemoryEngine {
   }
   
   /**
+   * Store tool execution result
+   * 
+   * Updates the most recent assistant message with tool results.
+   * Tool results are stored as a JSON array in the tool_results column.
+   * 
+   * Requirements: 4.2 - Store tool result messages with their outputs
+   * 
+   * @param conversationId Conversation ID
+   * @param toolCallId Tool call ID to match
+   * @param result Tool execution result
+   * @returns Promise that resolves when storage is complete
+   * @throws Error if conversation or message not found
+   */
+  async storeToolResult(
+    conversationId: string,
+    toolCallId: string,
+    result: any
+  ): Promise<void> {
+    const dbInstance = this.db.getDb();
+    
+    // Find the most recent assistant message with tool_calls containing this toolCallId
+    const message = dbInstance
+      .prepare(`
+        SELECT id, tool_results FROM conversation_messages
+        WHERE conversation_id = ? 
+          AND role = 'assistant'
+          AND tool_calls IS NOT NULL
+          AND tool_calls LIKE ?
+        ORDER BY timestamp DESC
+        LIMIT 1
+      `)
+      .get(conversationId, `%"id":"${toolCallId}"%`) as ConversationMessage | undefined;
+    
+    if (!message) {
+      throw new Error(`Message with tool call ${toolCallId} not found in conversation ${conversationId}`);
+    }
+    
+    // Parse existing tool results or create new array
+    let toolResults: Array<{
+      toolCallId: string;
+      result: any;
+      success: boolean;
+      executionTime: number;
+      timestamp: number;
+    }> = [];
+    
+    if (message.tool_results) {
+      try {
+        toolResults = JSON.parse(message.tool_results);
+      } catch (error) {
+        console.error('Failed to parse existing tool_results:', error);
+        toolResults = [];
+      }
+    }
+    
+    // Add new tool result (Requirement 4.2)
+    toolResults.push({
+      toolCallId,
+      result,
+      success: result.success !== false, // Default to true if not specified
+      executionTime: result.executionTime || 0,
+      timestamp: Date.now(),
+    });
+    
+    // Update message with tool results
+    dbInstance
+      .prepare(`
+        UPDATE conversation_messages
+        SET tool_results = ?
+        WHERE id = ?
+      `)
+      .run(JSON.stringify(toolResults), message.id);
+  }
+  
+  /**
    * Get conversation history
+   * 
+   * Requirements: 4.3 - Include tool calls and results in conversation history retrieval
    */
   async getConversationHistory(
     conversationId: string,
@@ -1036,7 +1157,63 @@ export class MemoryEngine implements IMemoryEngine {
       ? stmt.all(conversationId, limit)
       : stmt.all(conversationId);
     
-    return results as ConversationMessage[];
+    // Parse tool_calls and tool_results JSON (Requirement 4.3)
+    return (results as ConversationMessage[]).map(msg => ({
+      ...msg,
+      tool_calls: msg.tool_calls || null,
+      tool_results: msg.tool_results || null,
+    }));
+  }
+  
+  /**
+   * Get conversation history with token limit
+   * 
+   * Returns the most recent messages that fit within the token limit.
+   * Prioritizes recent messages and tool results.
+   * 
+   * Requirements: 4.7, 4.8 - Limit conversation history to prevent context window overflow
+   * 
+   * @param conversationId Conversation ID
+   * @param tokenLimit Maximum number of tokens
+   * @param estimateTokens Function to estimate tokens for a message
+   * @returns Promise with array of messages that fit within token limit
+   */
+  async getConversationHistoryWithTokenLimit(
+    conversationId: string,
+    tokenLimit: number,
+    estimateTokens: (message: ConversationMessage) => number
+  ): Promise<ConversationMessage[]> {
+    // Get all messages
+    const allMessages = await this.getConversationHistory(conversationId);
+    
+    if (allMessages.length === 0) {
+      return [];
+    }
+    
+    // Start from the most recent and work backwards
+    const selectedMessages: ConversationMessage[] = [];
+    let totalTokens = 0;
+    
+    // Reverse to start from most recent
+    for (let i = allMessages.length - 1; i >= 0; i--) {
+      const message = allMessages[i]!;
+      const messageTokens = estimateTokens(message);
+      
+      // Check if adding this message would exceed the limit
+      if (totalTokens + messageTokens > tokenLimit) {
+        // If we haven't selected any messages yet, include at least the most recent one
+        if (selectedMessages.length === 0) {
+          selectedMessages.unshift(message);
+        }
+        break;
+      }
+      
+      // Add message to the beginning (since we're going backwards)
+      selectedMessages.unshift(message);
+      totalTokens += messageTokens;
+    }
+    
+    return selectedMessages;
   }
   
   /**

@@ -115,8 +115,8 @@ export class PromotionApprovalWorkflow {
   async approve(
     promotionId: string,
     approvedBy: string,
-    reason?: string,
-    conditions?: string[]
+    _reason?: string,
+    _conditions?: string[]
   ): Promise<DeploymentResult> {
     console.log(`[Approval] Approving promotion: ${promotionId}`);
     console.log(`[Approval] Approved by: ${approvedBy}`);
@@ -342,16 +342,15 @@ export class PromotionApprovalWorkflow {
     const description = this.generatePRDescription(promotion);
 
     // Create PR
-    const prInfo = await this.prodWorkflow.createPullRequest(
+    const prInfo = await this.prodWorkflow.generatePullRequest(
       `promotion-${promotion.id}`,
       promotion.title,
-      description,
-      this.config.prodBranch
+      description
     );
 
     return {
-      url: prInfo.url,
-      number: prInfo.number,
+      url: prInfo.prUrl ?? '',
+      number: 0, // generatePullRequest doesn't return PR number
     };
   }
 
@@ -480,9 +479,8 @@ export class PromotionApprovalWorkflow {
         solution: payload.type,
         example_code: JSON.stringify(payload),
         applicability: `Status: ${payload.status}`,
-        metadata: {
-          notificationData: payload,
-        },
+        success_count: 0,
+        failure_count: 0,
       });
     } catch (error) {
       console.error('Failed to store notification:', error);
@@ -499,11 +497,15 @@ export class PromotionApprovalWorkflow {
       const notifications: NotificationPayload[] = [];
 
       for (const result of results) {
-        if (result.category === 'promotion-notification' && result.metadata?.notificationData) {
-          const notification = result.metadata.notificationData as NotificationPayload;
+        if (result.category === 'promotion-notification' && result.example_code) {
+          try {
+            const notification = JSON.parse(result.example_code) as NotificationPayload;
 
-          if (!promotionId || notification.promotionId === promotionId) {
-            notifications.push(notification);
+            if (!promotionId || notification.promotionId === promotionId) {
+              notifications.push(notification);
+            }
+          } catch (error) {
+            console.warn('Failed to parse notification data:', error);
           }
         }
       }

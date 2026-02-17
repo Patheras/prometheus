@@ -7,7 +7,7 @@
  */
 
 import { TechnicalDebtItem } from './types';
-import { RuntimeEngine } from '../runtime';
+import { RuntimeExecutor } from '../runtime';
 
 /**
  * Debt Quantifier
@@ -15,7 +15,7 @@ import { RuntimeEngine } from '../runtime';
  * Estimates effort to fix technical debt using LLM analysis.
  */
 export class DebtQuantifier {
-  constructor(private runtimeEngine: RuntimeEngine) {}
+  constructor(private runtimeExecutor: RuntimeExecutor) {}
 
   /**
    * Quantify a single debt item
@@ -31,11 +31,11 @@ export class DebtQuantifier {
     const prompt = this.buildQuantificationPrompt(debt, context);
 
     try {
-      // Use RuntimeEngine to get LLM estimate
-      const response = await this.runtimeEngine.execute({
+      // Use RuntimeExecutor to get LLM estimate
+      const response = await this.runtimeExecutor.execute({
         taskType: 'decision_making',
         prompt,
-        systemPrompt: 'You are a technical debt analyst. Estimate effort in hours to fix issues.',
+        context: '',
         maxTokens: 200,
       });
 
@@ -112,7 +112,7 @@ export class DebtQuantifier {
     const match = response.match(/(\d+\.?\d*)/);
 
     if (match) {
-      return parseFloat(match[1]);
+      return parseFloat(match[1] || '1');
     }
 
     // Fallback
@@ -186,9 +186,9 @@ export class DebtQuantifier {
 /**
  * Create a debt quantifier instance
  * 
- * @param runtimeEngine - Runtime engine for LLM calls
+ * @param runtimeExecutor - Runtime executor for LLM calls
  * @returns Debt quantifier instance
  */
-export function createDebtQuantifier(runtimeEngine: RuntimeEngine): DebtQuantifier {
-  return new DebtQuantifier(runtimeEngine);
+export function createDebtQuantifier(runtimeExecutor: RuntimeExecutor): DebtQuantifier {
+  return new DebtQuantifier(runtimeExecutor);
 }

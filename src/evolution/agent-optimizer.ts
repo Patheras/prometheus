@@ -11,7 +11,7 @@
 
 import type { RuntimeExecutor } from '../runtime/runtime-executor';
 import type { MemoryEngine } from '../memory';
-import type { Metric } from '../types';
+import type { Metric } from '../memory/types';
 
 export interface PerformanceBottleneck {
   operation: string;
@@ -331,7 +331,7 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
         metric_type: 'optimization',
         metric_name: 'rollout',
         value: 1,
-        context: { optimizationId, status: 'completed' },
+        context: JSON.stringify({ optimizationId, status: 'completed' }),
       },
     ]);
   }
@@ -369,7 +369,7 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
         metric_type: 'optimization',
         metric_name: 'rollback',
         value: 1,
-        context: { optimizationId, reason },
+        context: JSON.stringify({ optimizationId, reason }),
       },
     ]);
   }
@@ -410,7 +410,9 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
     for (const metric in beforeMetrics) {
       const before = beforeMetrics[metric];
       const after = afterMetrics[metric];
-      improvements[metric] = before > 0 ? ((before - after) / before) * 100 : 0;
+      if (before !== undefined && after !== undefined) {
+        improvements[metric] = before > 0 ? ((before - after) / before) * 100 : 0;
+      }
     }
 
     // Check if improvements are sustained (not degrading over time)
@@ -434,11 +436,12 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
     };
 
     if (timeRange) {
-      query.startTime = timeRange.start;
-      query.endTime = timeRange.end;
+      query.start_time = timeRange.start;
+      query.end_time = timeRange.end;
     }
 
-    return await this.memoryEngine.queryMetrics(query);
+    const result = await this.memoryEngine.queryMetrics(query);
+    return result.metrics;
   }
 
   /**
@@ -462,8 +465,8 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
     for (const [operation, latencies] of byOperation.entries()) {
       const sorted = latencies.sort((a, b) => a - b);
       const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length;
-      const p95 = sorted[Math.floor(sorted.length * 0.95)];
-      const p99 = sorted[Math.floor(sorted.length * 0.99)];
+      const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+      const p99 = sorted[Math.floor(sorted.length * 0.99)] ?? 0;
       const frequency = latencies.length;
       const totalImpact = avg * frequency;
 
@@ -503,8 +506,8 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
     for (const [operation, latencies] of byOperation.entries()) {
       const sorted = latencies.sort((a, b) => a - b);
       const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length;
-      const p95 = sorted[Math.floor(sorted.length * 0.95)];
-      const p99 = sorted[Math.floor(sorted.length * 0.99)];
+      const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+      const p99 = sorted[Math.floor(sorted.length * 0.99)] ?? 0;
       const frequency = latencies.length;
       const totalImpact = avg * frequency;
 
@@ -549,8 +552,8 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
     for (const [operation, latencies] of byOperation.entries()) {
       const sorted = latencies.sort((a, b) => a - b);
       const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length;
-      const p95 = sorted[Math.floor(sorted.length * 0.95)];
-      const p99 = sorted[Math.floor(sorted.length * 0.99)];
+      const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+      const p99 = sorted[Math.floor(sorted.length * 0.99)] ?? 0;
       const frequency = latencies.length;
       const totalImpact = avg * frequency;
 
@@ -572,15 +575,16 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
   /**
    * Collect metrics for a specific version
    */
-  private async collectMetrics(version: string, metricNames: string[]): Promise<Record<string, number>> {
+  private async collectMetrics(_version: string, metricNames: string[]): Promise<Record<string, number>> {
     const result: Record<string, number> = {};
 
     for (const metricName of metricNames) {
-      const metrics = await this.memoryEngine.queryMetrics({
+      const metricsResult = await this.memoryEngine.queryMetrics({
         metric_name: metricName,
         // In real implementation, would filter by version
       });
 
+      const metrics = metricsResult.metrics;
       if (metrics.length > 0) {
         const avg = metrics.reduce((sum, m) => sum + m.value, 0) / metrics.length;
         result[metricName] = avg;
@@ -596,17 +600,21 @@ Return JSON with: description, approach, codeChanges, estimatedImprovement, esti
    * Get aggregated metrics for a time range
    */
   private async getAggregatedMetrics(timeRange: { start: number; end: number }): Promise<Record<string, number>> {
-    const metrics = await this.memoryEngine.queryMetrics({
-      startTime: timeRange.start,
-      endTime: timeRange.end,
+    const metricsResult = await this.memoryEngine.queryMetrics({
+      start_time: timeRange.start,
+      end_time: timeRange.end,
     });
 
+    const metrics = metricsResult.metrics;
     const aggregated: Record<string, number[]> = {};
     for (const metric of metrics) {
       if (!aggregated[metric.metric_name]) {
         aggregated[metric.metric_name] = [];
       }
-      aggregated[metric.metric_name].push(metric.value);
+      const arr = aggregated[metric.metric_name];
+      if (arr) {
+        arr.push(metric.value);
+      }
     }
 
     const result: Record<string, number> = {};

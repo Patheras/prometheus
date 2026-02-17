@@ -162,7 +162,7 @@ export class ConsultationManager {
     decision: Decision,
     impact: ImpactAssessment,
     riskEvaluation?: RiskEvaluation,
-    priorityScore?: PriorityScore
+    _priorityScore?: PriorityScore
   ): { required: boolean; triggers: ConsultationTrigger[] } {
     const triggers: ConsultationTrigger[] = [];
 
@@ -333,7 +333,7 @@ export class ConsultationManager {
 
     // Add priority if available
     if (priorityScore) {
-      parts.push(`Priority score: ${priorityScore.totalScore}/100`);
+      parts.push(`Priority score: ${priorityScore.total}/100`);
     }
 
     // Add final recommendation
@@ -365,7 +365,7 @@ export class ConsultationManager {
     // Decision details
     parts.push(`**Decision**: ${decision.description}`);
     parts.push(`**Type**: ${decision.type}`);
-    parts.push(`**Files**: ${decision.change.files.length} file(s)`);
+    parts.push(`**Files**: ${decision.change?.files.length || 0} file(s)`);
 
     // Triggers
     parts.push(`\n**Consultation Triggers**:`);
@@ -470,7 +470,7 @@ export class ConsultationManager {
   /**
    * Learn from user guidance
    */
-  private learnFromGuidance(request: ConsultationRequest, guidance: string): void {
+  private learnFromGuidance(_request: ConsultationRequest, guidance: string): void {
     // Store guidance for future reference
     // This could be used to update decision models
     // For now, we just track it

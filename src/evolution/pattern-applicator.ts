@@ -10,7 +10,23 @@
 
 import type { RuntimeExecutor } from '../runtime/runtime-executor';
 import type { MemoryEngine } from '../memory';
-import type { Pattern, PatternOpportunity, PatternResult } from '../types';
+import type { Pattern } from '../memory/types';
+
+// Local types that use memory Pattern type
+export interface PatternResult {
+  success: boolean;
+  pattern: Pattern;
+  location: { file: string; line: number };
+  error?: string;
+}
+
+export interface PatternOpportunity {
+  pattern: Pattern;
+  location: { file: string; line: number };
+  estimatedBenefit: number;
+  estimatedEffort: number;
+  confidence: number;
+}
 
 export interface PatternApplicabilityCheck {
   applicable: boolean;
@@ -101,7 +117,7 @@ export class PatternApplicator {
       // Fallback: minimal adaptation
       return {
         originalPattern: pattern,
-        adaptedCode: pattern.example_code,
+        adaptedCode: pattern.example_code ?? '',
         adaptationNotes: ['No LLM available, using pattern as-is'],
         localConventions: conventions,
       };
@@ -147,7 +163,7 @@ Return JSON with: adaptedCode, adaptationNotes`;
 
       return {
         originalPattern: pattern,
-        adaptedCode: result.adaptedCode || pattern.example_code,
+        adaptedCode: result.adaptedCode || pattern.example_code || '',
         adaptationNotes: result.adaptationNotes || [],
         localConventions: conventions,
       };
@@ -155,7 +171,7 @@ Return JSON with: adaptedCode, adaptationNotes`;
       console.error('Pattern adaptation failed:', error);
       return {
         originalPattern: pattern,
-        adaptedCode: pattern.example_code,
+        adaptedCode: pattern.example_code ?? '',
         adaptationNotes: ['Adaptation failed, using original pattern'],
         localConventions: conventions,
       };
@@ -170,7 +186,7 @@ Return JSON with: adaptedCode, adaptationNotes`;
   async applyPattern(
     pattern: Pattern,
     location: { file: string; line: number },
-    adaptedCode: string
+    _adaptedCode: string
   ): Promise<PatternResult> {
     try {
       // In a real implementation, this would:
@@ -188,7 +204,7 @@ Return JSON with: adaptedCode, adaptationNotes`;
       await this.memoryEngine.updatePatternOutcome(pattern.id, {
         success,
         context: `Applied at ${location.file}:${location.line}`,
-        timestamp: Date.now(),
+        notes: `Applied at ${new Date().toISOString()}`,
       });
 
       return {
@@ -201,7 +217,7 @@ Return JSON with: adaptedCode, adaptationNotes`;
       await this.memoryEngine.updatePatternOutcome(pattern.id, {
         success: false,
         context: `Failed at ${location.file}:${location.line}: ${error}`,
-        timestamp: Date.now(),
+        notes: `Failed at ${new Date().toISOString()}: ${error}`,
       });
 
       return {
@@ -250,6 +266,7 @@ Return JSON with: adaptedCode, adaptationNotes`;
               location: { file, line: 1 },
               estimatedBenefit: this.estimateBenefit(pattern, applicability),
               estimatedEffort: applicability.estimatedEffort,
+              confidence: applicability.confidence,
             });
           }
         }
@@ -433,7 +450,7 @@ Return JSON with: confidence, reasoning, estimatedEffort`;
   /**
    * Detect local code conventions
    */
-  private async detectLocalConventions(file: string, codeContext: string): Promise<string[]> {
+  private async detectLocalConventions(_file: string, codeContext: string): Promise<string[]> {
     const conventions: string[] = [];
 
     // Detect naming conventions
@@ -500,7 +517,7 @@ Return JSON with: confidence, reasoning, estimatedEffort`;
   /**
    * Detect if pattern problem exists in code
    */
-  private async detectProblem(pattern: Pattern, file: string, content: string): Promise<boolean> {
+  private async detectProblem(pattern: Pattern, _file: string, content: string): Promise<boolean> {
     const problem = pattern.problem.toLowerCase();
 
     // Simple heuristic detection

@@ -9,6 +9,8 @@ import { ModelRef, RuntimeRequest, RuntimeResponse } from '../types/index.js';
 import { callAnthropic, callAnthropicStreaming, getAnthropicModels, getAnthropicContextWindow } from './anthropic-provider.js';
 import { callOpenAI, callOpenAIStreaming, getOpenAIModels, getOpenAIContextWindow } from './openai-provider.js';
 import { callAzureOpenAI, callAzureOpenAIStreaming, getAzureOpenAIModels, getAzureOpenAIContextWindow, AzureOpenAIConfig } from './azure-openai-provider.js';
+import { callGemini, callGeminiStreaming, getGeminiModels, getGeminiContextWindow } from './gemini-provider.js';
+import { callLMStudio, callLMStudioStreaming, getLMStudioModels, getLMStudioContextWindow, LMStudioConfig } from './lmstudio-provider.js';
 import { MockLLMProvider } from './mock-llm-provider.js';
 
 /**
@@ -16,13 +18,16 @@ import { MockLLMProvider } from './mock-llm-provider.js';
  */
 export interface LLMProviderConfig {
   /** Provider type */
-  provider: 'azure-openai' | 'anthropic' | 'openai' | 'mock';
+  provider: 'azure-openai' | 'anthropic' | 'openai' | 'google' | 'lmstudio' | 'mock';
   
   /** API key */
   apiKey?: string;
   
   /** Azure OpenAI configuration */
   azureConfig?: AzureOpenAIConfig;
+  
+  /** LM Studio configuration */
+  lmstudioConfig?: LMStudioConfig;
   
   /** Mock provider configuration (for testing) */
   mockConfig?: {
@@ -77,6 +82,18 @@ export function createLLMCaller(config: LLMProviderConfig): LLMCaller {
     case 'openai':
       return callOpenAI;
     
+    case 'google':
+      return callGemini;
+    
+    case 'lmstudio': {
+      if (!config.lmstudioConfig) {
+        throw new Error('LM Studio configuration is required');
+      }
+      return async (request, model, _apiKeyOrConfig, signal) => {
+        return await callLMStudio(request, model, config.lmstudioConfig!, signal);
+      };
+    }
+    
     case 'mock': {
       const mockProvider = new MockLLMProvider(config.mockConfig);
       return async (request, model, apiKey, signal) => {
@@ -115,6 +132,18 @@ export function createLLMStreamingCaller(config: LLMProviderConfig): LLMStreamin
     case 'openai':
       return callOpenAIStreaming;
     
+    case 'google':
+      return callGeminiStreaming;
+    
+    case 'lmstudio': {
+      if (!config.lmstudioConfig) {
+        throw new Error('LM Studio configuration is required');
+      }
+      return async function* (request, model, _apiKeyOrConfig, signal) {
+        yield* callLMStudioStreaming(request, model, config.lmstudioConfig!, signal);
+      };
+    }
+    
     case 'mock': {
       const mockProvider = new MockLLMProvider(config.mockConfig);
       return async function* (request, model, apiKey, signal) {
@@ -144,6 +173,12 @@ export function getAvailableModels(provider: string): ModelRef[] {
     case 'openai':
       return getOpenAIModels();
     
+    case 'google':
+      return getGeminiModels();
+    
+    case 'lmstudio':
+      return getLMStudioModels();
+    
     case 'mock':
       return [
         { provider: 'mock', model: 'mock-model' },
@@ -171,6 +206,12 @@ export function getContextWindow(model: ModelRef): number {
     case 'openai':
       return getOpenAIContextWindow(model.model);
     
+    case 'google':
+      return getGeminiContextWindow(model.model);
+    
+    case 'lmstudio':
+      return getLMStudioContextWindow(model.model);
+    
     case 'mock':
       return 128000;
     
@@ -183,7 +224,7 @@ export function getContextWindow(model: ModelRef): number {
  * Get all available providers
  */
 export function getAllProviders(): string[] {
-  return ['azure-openai', 'anthropic', 'openai', 'mock'];
+  return ['azure-openai', 'anthropic', 'openai', 'google', 'lmstudio', 'mock'];
 }
 
 /**

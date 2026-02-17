@@ -164,8 +164,8 @@ export class RepositoryManager {
     const context: RepositoryContext = {
       repoId,
       repoPath: connector.getRepoPath(),
-      provider: connector.getConfig().provider,
-      url: connector.getConfig().url,
+      provider: connector.getConfig().provider as 'github' | 'gitlab' | 'bitbucket',
+      url: connector.getConfig().repoUrl,
       enteredAt: Date.now(),
     };
 
@@ -351,8 +351,8 @@ export class RepositoryManager {
     const context: RepositoryContext = {
       repoId,
       repoPath: connector.getRepoPath(),
-      provider: connector.getConfig().provider,
-      url: connector.getConfig().url,
+      provider: connector.getConfig().provider as 'github' | 'gitlab' | 'bitbucket',
+      url: connector.getConfig().repoUrl,
       enteredAt: Date.now(),
     };
 
@@ -408,7 +408,7 @@ export class RepositoryManager {
     const issues: string[] = [];
 
     // Check that each repository has its own index namespace
-    for (const [repoId, connector] of this.connectors) {
+    for (const [repoId, _connector] of this.connectors) {
       const namespace = this.repositoryIndices.get(repoId);
       if (!namespace) {
         issues.push(`Repository ${repoId} missing index namespace`);
@@ -472,7 +472,7 @@ export class RepositoryManager {
         name: config.name,
         path: connector.getRepoPath(),
         provider: config.provider,
-        url: config.url,
+        url: config.repoUrl,
         isActive: this.contextManager.isActive(id),
       });
     }

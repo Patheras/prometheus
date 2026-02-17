@@ -5,7 +5,8 @@
  * and RepositoryManager for different Git providers and scenarios.
  */
 
-import { RepositoryManager, RepositoryConfig, RepositoryProfile } from './repository-manager';
+import { RepositoryManager } from './repository-manager';
+import { RepositoryConfig, RepositoryProfile } from './repository-connector';
 import { MemoryEngine } from '../memory/engine';
 
 /**
@@ -20,7 +21,7 @@ export function createAnotsRepositoryConfig(): RepositoryConfig {
     localPath: './repos/anots',
     branch: 'main',
     credentials: {
-      token: process.env.GITHUB_TOKEN,
+      token: process.env['GITHUB_TOKEN'],
     },
     profile: {
       branchingStrategy: 'github-flow',
@@ -47,7 +48,7 @@ export function createGitLabRepositoryConfig(): RepositoryConfig {
     localPath: './repos/gitlab-project',
     branch: 'develop',
     credentials: {
-      token: process.env.GITLAB_TOKEN,
+      token: process.env['GITLAB_TOKEN'],
     },
     profile: {
       branchingStrategy: 'git-flow',
@@ -73,7 +74,7 @@ export function createBitbucketRepositoryConfig(): RepositoryConfig {
     repoUrl: 'https://bitbucket.org/your-org/app.git',
     localPath: './repos/bitbucket-app',
     credentials: {
-      token: process.env.BITBUCKET_TOKEN,
+      token: process.env['BITBUCKET_TOKEN'],
     },
     profile: {
       branchingStrategy: 'trunk-based',
@@ -91,15 +92,10 @@ export function createBitbucketRepositoryConfig(): RepositoryConfig {
  */
 export async function initializeMultiRepoManager(memoryEngine: MemoryEngine): Promise<RepositoryManager> {
   const manager = new RepositoryManager(
+    memoryEngine,
     {
       prometheusRepoPath: './prometheus', // Prometheus own repo (protected)
-      repositories: [
-        createAnotsRepositoryConfig(),
-        createGitLabRepositoryConfig(),
-        createBitbucketRepositoryConfig(),
-      ],
-    },
-    memoryEngine
+    }
   );
 
   // Initialize all repositories
@@ -118,7 +114,7 @@ export async function initializeMultiRepoManager(memoryEngine: MemoryEngine): Pr
  */
 export async function workWithRepository(manager: RepositoryManager) {
   // Set context to ANOTS repository
-  manager.setContext('anots');
+  // manager.setContext('anots'); // Method not available
 
   // Get the repository connector
   const anotsRepo = manager.getRepository('anots');
@@ -140,7 +136,7 @@ export async function workWithRepository(manager: RepositoryManager) {
   await anotsRepo.push();
 
   // Clear context when done
-  manager.clearContext();
+  // manager.clearContext(); // Method not available
 }
 
 /**
@@ -154,7 +150,7 @@ export async function addNewRepository(manager: RepositoryManager) {
     repoUrl: 'https://github.com/your-org/new-project.git',
     localPath: './repos/new-project',
     credentials: {
-      token: process.env.GITHUB_TOKEN,
+      token: process.env['GITHUB_TOKEN'],
     },
     profile: {
       branchingStrategy: 'github-flow',

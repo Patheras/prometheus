@@ -5,7 +5,7 @@
  * Works with Themis (TestValidator) to ensure quality.
  */
 
-import { RuntimeEngine } from '../runtime';
+import { RuntimeExecutor } from '../runtime/runtime-executor';
 import { TestValidator, GeneratedTest, TestValidationResult } from './test-validator';
 
 /**
@@ -49,7 +49,7 @@ export class TestGenerator {
   private maxAttempts = 3;
 
   constructor(
-    private runtimeEngine: RuntimeEngine,
+    private runtimeEngine: RuntimeExecutor,
     private testValidator: TestValidator
   ) {}
 
@@ -130,7 +130,7 @@ export class TestGenerator {
       const response = await this.runtimeEngine.execute({
         taskType: 'code_analysis',
         prompt,
-        systemPrompt: `You are a test generation expert. 
+        context: `You are a test generation expert. 
 Generate high-quality, comprehensive tests.
 Focus on edge cases and real behavior.
 DO NOT hallucinate - only test actual functionality in the source code.`,
@@ -158,7 +158,7 @@ DO NOT hallucinate - only test actual functionality in the source code.`,
    * Build test generation prompt
    */
   private buildGenerationPrompt(
-    filePath: string,
+    _filePath: string,
     functionName: string,
     sourceCode: string,
     previousValidation?: TestValidationResult | null
@@ -202,7 +202,7 @@ Fix these issues in the new test.
   private extractTestCode(response: string): string {
     // Extract code from markdown code blocks
     const match = response.match(/```(?:typescript|ts)?\n([\s\S]*?)\n```/);
-    if (match) {
+    if (match && match[1]) {
       return match[1].trim();
     }
 
@@ -253,7 +253,7 @@ PRIORITY: [0-100]
       const response = await this.runtimeEngine.execute({
         taskType: 'code_analysis',
         prompt,
-        systemPrompt: 'You are a test coverage analyzer. Be thorough and precise.',
+        context: 'You are a test coverage analyzer. Be thorough and precise.',
         maxTokens: 800,
       });
 
@@ -358,7 +358,7 @@ PRIORITY: [0-100]
  * @returns Test generator instance
  */
 export function createTestGenerator(
-  runtimeEngine: RuntimeEngine,
+  runtimeEngine: RuntimeExecutor,
   testValidator: TestValidator
 ): TestGenerator {
   return new TestGenerator(runtimeEngine, testValidator);

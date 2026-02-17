@@ -182,7 +182,7 @@ export {
 export {
   createLLMCaller,
   createLLMStreamingCaller,
-  getAvailableModels as getProviderModels,
+  getAvailableModels,
   getContextWindow as getModelContextWindow,
   getAllProviders as getAllLLMProviders,
   validateProviderConfig,

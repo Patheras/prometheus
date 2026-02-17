@@ -7,12 +7,11 @@
  * Task 37.2: Apply quality analysis to self-code
  */
 
-import type { QualityIssue, TechnicalDebt, Improvement, Metric } from '../types';
+import type { QualityIssue, TechnicalDebt, Improvement } from '../types';
+import type { Metric } from '../memory/types';
 import type { CodeQualityAnalyzer } from '../analysis/code-quality-analyzer';
 import type { DebtDetector } from '../analysis/debt-detector';
 import type { MemoryEngine } from '../memory';
-import type { QualityAnalysisResult } from '../analysis/types';
-import type { TechnicalDebtSummary } from '../analysis/types';
 
 export interface SelfAnalysisConfig {
   prometheusRepoPath: string;
@@ -212,10 +211,16 @@ export class SelfAnalyzer {
       throw new Error('No analysis history available');
     }
 
-    const current = this.analysisHistory[this.analysisHistory.length - 1].metrics;
-    const previous = this.analysisHistory.length > 1
-      ? this.analysisHistory[this.analysisHistory.length - 2].metrics
+    const lastAnalysis = this.analysisHistory[this.analysisHistory.length - 1];
+    if (!lastAnalysis) {
+      throw new Error('No analysis history available');
+    }
+
+    const current = lastAnalysis.metrics;
+    const previousAnalysis = this.analysisHistory.length > 1
+      ? this.analysisHistory[this.analysisHistory.length - 2]
       : undefined;
+    const previous = previousAnalysis?.metrics;
 
     let trend: 'improving' | 'stable' | 'degrading' = 'stable';
     if (previous) {
@@ -234,7 +239,11 @@ export class SelfAnalyzer {
     if (this.analysisHistory.length === 0) {
       throw new Error('No analysis has been run yet');
     }
-    return this.analysisHistory[this.analysisHistory.length - 1];
+    const lastAnalysis = this.analysisHistory[this.analysisHistory.length - 1];
+    if (!lastAnalysis) {
+      throw new Error('No analysis has been run yet');
+    }
+    return lastAnalysis;
   }
 
   /**
@@ -266,10 +275,14 @@ export class SelfAnalyzer {
 
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
+          if (!line) continue;
+          
           const todoMatch = line.match(/\/\/\s*(TODO|FIXME|HACK|XXX):\s*(.+)/i);
 
           if (todoMatch) {
             const [, type, description] = todoMatch;
+            if (!type || !description) continue;
+            
             const priority = type.toUpperCase() === 'FIXME' ? 80 : 40; // Scale to 0-100
 
             debtItems.push({
@@ -444,11 +457,11 @@ export class SelfAnalyzer {
           metric_type: 'self_improvement',
           metric_name: 'quality_score',
           value: result.metrics.qualityScore,
-          context: {
+          context: JSON.stringify({
             issues: result.issues.length,
             debt: result.debt.length,
             improvements: result.improvements.length,
-          },
+          }),
         },
       ];
       

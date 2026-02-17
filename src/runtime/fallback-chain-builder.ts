@@ -37,9 +37,10 @@ export type FallbackChainConfig = {
  * Default fallback models (used when no explicit fallbacks are configured)
  */
 const DEFAULT_FALLBACK_MODELS: ModelRef[] = [
+  { provider: 'azure-openai', model: 'gpt-5.1-codex-mini' },  // 2nd priority: Codex for code tasks
   { provider: 'anthropic', model: 'claude-sonnet-4' },
   { provider: 'openai', model: 'gpt-4o' },
-  { provider: 'google', model: 'gemini-2.0-flash-exp' }
+  { provider: 'google', model: 'gemini-2.5-pro' }
 ];
 
 /**

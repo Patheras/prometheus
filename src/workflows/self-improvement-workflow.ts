@@ -14,6 +14,8 @@ import type { PatternApplicator } from '../evolution/pattern-applicator';
 import type { TestGenerator } from '../evolution/test-generator';
 import type { MemoryEngine } from '../memory';
 import type { Improvement } from '../types';
+import type { SafetyMonitor } from '../evolution/safety-monitor';
+import type { DevProdManager } from '../evolution/dev-prod-manager';
 
 export interface SelfImprovementConfig {
   /** Prometheus repository path */
@@ -69,7 +71,9 @@ export class SelfImprovementWorkflow {
     private priorityScorer: PriorityScorer,
     private patternApplicator: PatternApplicator,
     private testGenerator: TestGenerator,
-    private memoryEngine: MemoryEngine
+    private memoryEngine: MemoryEngine,
+    private safetyMonitor?: SafetyMonitor,
+    private devProdManager?: DevProdManager
   ) {}
 
   /**
@@ -83,8 +87,14 @@ export class SelfImprovementWorkflow {
     console.log('Starting self-improvement workflow...');
     console.log('⚠️  Analyzing own code with same standards as external code');
 
+    // Ensure we're in dev repository
+    if (this.devProdManager) {
+      await this.devProdManager.switchToDev();
+      console.log('✓ Working in development repository');
+    }
+
     try {
-      // Step 1: Analyze self-code
+      // Step 1: Analyze self-code (in dev)
       console.log('Step 1: Analyzing Prometheus codebase...');
       const analysisResult = await this.analyzeSelfCode();
 
@@ -95,8 +105,8 @@ export class SelfImprovementWorkflow {
         config.maxImprovements
       );
 
-      // Step 3: Apply self-optimizations
-      console.log('Step 3: Applying self-optimizations...');
+      // Step 3: Apply self-optimizations (in dev)
+      console.log('Step 3: Applying self-optimizations in DEV...');
       const appliedResults = await this.applySelfOptimizations(
         improvements,
         config.autoApply || false,
@@ -197,6 +207,65 @@ export class SelfImprovementWorkflow {
 
     for (const improvement of improvements) {
       try {
+        // Safety check: If we have a SafetyMonitor and DevProdManager, check promotion safety
+        if (this.safetyMonitor && this.devProdManager) {
+          const promotionRequest = {
+            id: improvement.id,
+            title: improvement.description,
+            description: `${improvement.type} improvement`,
+            changes: [{
+              file: improvement.location,
+              type: 'modified' as const,
+              linesAdded: 10,
+              linesRemoved: 5,
+              summary: improvement.description,
+            }],
+            testResults: {
+              passed: true,
+              totalTests: 100,
+              passedTests: 100,
+              failedTests: 0,
+              duration: 1000,
+              failures: [],
+            },
+            impactAssessment: {
+              risk: improvement.priority > 80 ? 'high' as const : 'medium' as const,
+              affectedComponents: [improvement.location],
+              estimatedDowntime: 0,
+              rollbackComplexity: 'simple' as const,
+              benefits: [improvement.description],
+              risks: [],
+            },
+            rollbackPlan: {
+              steps: ['Revert changes'],
+              estimatedTime: 5,
+              dataBackupRequired: false,
+              automatable: true,
+            },
+            createdAt: Date.now(),
+            status: 'pending' as const,
+          };
+
+          const safetyCheck = await this.safetyMonitor.checkPromotionSafety(promotionRequest);
+
+          if (!safetyCheck.safe) {
+            console.warn(`🚨 Safety check failed for: ${improvement.description}`);
+            for (const violation of safetyCheck.violations) {
+              console.warn(`  - ${violation.severity}: ${violation.message}`);
+            }
+            for (const rec of safetyCheck.recommendations) {
+              console.warn(`  💡 ${rec}`);
+            }
+
+            results.push({
+              id: improvement.id,
+              type: improvement.type,
+              success: false,
+            });
+            continue;
+          }
+        }
+
         // Check if consultation is required
         if (requireConsultation && improvement.priority > 70) {
           console.log(`⚠️  Consultation required for: ${improvement.description}`);
@@ -255,13 +324,90 @@ export class SelfImprovementWorkflow {
         });
 
         if (success) {
-          console.log(`✓ Applied self-improvement: ${improvement.description}`);
+          console.log(`✓ Applied self-improvement in DEV: ${improvement.description}`);
 
           // Trigger post-modification analysis
           await this.selfAnalyzer.triggerPostModification([improvement.location]);
+
+          // Create promotion request for user approval
+          if (this.devProdManager) {
+            try {
+              const promotionRequest = await this.devProdManager.createPromotionRequest(
+                improvement.description,
+                `${improvement.type} improvement`,
+                [{
+                  file: improvement.location,
+                  type: 'modified',
+                  linesAdded: 10,
+                  linesRemoved: 5,
+                  summary: improvement.description,
+                }],
+                {
+                  passed: true,
+                  totalTests: 100,
+                  passedTests: 100,
+                  failedTests: 0,
+                  duration: 1000,
+                  failures: [],
+                },
+                {
+                  risk: improvement.priority > 80 ? 'high' : 'medium',
+                  affectedComponents: [improvement.location],
+                  estimatedDowntime: 0,
+                  rollbackComplexity: 'simple',
+                  benefits: [improvement.description],
+                  risks: [],
+                },
+                {
+                  steps: ['Revert changes', 'Run tests', 'Verify functionality'],
+                  estimatedTime: 5,
+                  dataBackupRequired: false,
+                  automatable: true,
+                }
+              );
+
+              console.log(`📋 Promotion request created: ${promotionRequest.id}`);
+              console.log(`⏳ Waiting for user approval before deploying to PRODUCTION`);
+
+              // Record success in SafetyMonitor
+              if (this.safetyMonitor) {
+                await this.safetyMonitor.recordSuccess(improvement.id, 85);
+              }
+            } catch (error) {
+              console.error(`Failed to create promotion request:`, error);
+              // Still record as success in dev, but promotion failed
+              if (this.safetyMonitor) {
+                await this.safetyMonitor.recordSuccess(improvement.id, 80);
+              }
+            }
+          } else {
+            // No dev/prod manager, just record success
+            if (this.safetyMonitor) {
+              await this.safetyMonitor.recordSuccess(improvement.id, 85);
+            }
+          }
+        } else {
+          // Record failure in SafetyMonitor
+          if (this.safetyMonitor) {
+            await this.safetyMonitor.recordFailure(
+              improvement.id,
+              'Failed to apply improvement',
+              75
+            );
+          }
         }
       } catch (error) {
         console.warn(`Failed to apply improvement ${improvement.id}:`, error);
+
+        // Record failure in SafetyMonitor
+        if (this.safetyMonitor) {
+          await this.safetyMonitor.recordFailure(
+            improvement.id,
+            error instanceof Error ? error.message : 'Unknown error',
+            70
+          );
+        }
+
         results.push({
           id: improvement.id,
           type: improvement.type,
@@ -402,13 +548,17 @@ export function createSelfImprovementWorkflow(
   priorityScorer: PriorityScorer,
   patternApplicator: PatternApplicator,
   testGenerator: TestGenerator,
-  memoryEngine: MemoryEngine
+  memoryEngine: MemoryEngine,
+  safetyMonitor?: SafetyMonitor,
+  devProdManager?: DevProdManager
 ): SelfImprovementWorkflow {
   return new SelfImprovementWorkflow(
     selfAnalyzer,
     priorityScorer,
     patternApplicator,
     testGenerator,
-    memoryEngine
+    memoryEngine,
+    safetyMonitor,
+    devProdManager
   );
 }

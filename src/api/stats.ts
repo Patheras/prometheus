@@ -1,9 +1,10 @@
 /**
- * Stats API - Memory, Runtime, and Queue Statistics
+ * Stats API - Memory, Runtime, Queue, and Tool Statistics
  */
 
 import { getAllLanes, getLaneStatus } from '../queue/lane-queue.js';
 import { Request, Response } from 'express';
+import { getToolRegistry, getToolExecutionEngine } from '../tools/index.js';
 
 /**
  * Get memory engine statistics
@@ -63,11 +64,57 @@ export function getQueueStats() {
 }
 
 /**
+ * Get tool execution statistics
+ */
+export function getToolStats() {
+  try {
+    const toolEngine = getToolExecutionEngine();
+    const registry = getToolRegistry();
+    const metrics = toolEngine.getMetrics();
+    const circuitBreakerStatuses = toolEngine.getCircuitBreakerStatuses();
+
+    // Calculate aggregate metrics
+    const allMetrics = Object.values(metrics);
+    const totalCalls = allMetrics.reduce((sum, m) => sum + m.totalCalls, 0);
+    const totalSuccesses = allMetrics.reduce((sum, m) => sum + m.successfulCalls, 0);
+    const totalFailures = allMetrics.reduce((sum, m) => sum + m.failedCalls, 0);
+    const overallSuccessRate = totalCalls > 0 ? (totalSuccesses / totalCalls) * 100 : 0;
+
+    // Calculate average latencies
+    const avgLatencies = allMetrics
+      .filter(m => m.totalCalls > 0)
+      .map(m => m.avgLatency);
+    const overallAvgLatency = avgLatencies.length > 0
+      ? avgLatencies.reduce((sum, lat) => sum + lat, 0) / avgLatencies.length
+      : 0;
+
+    return {
+      enabled: true,
+      totalTools: registry.getAllSchemas().length,
+      totalCalls,
+      successfulCalls: totalSuccesses,
+      failedCalls: totalFailures,
+      successRate: Math.round(overallSuccessRate * 100) / 100,
+      avgLatency: Math.round(overallAvgLatency),
+      toolMetrics: metrics,
+      circuitBreakers: circuitBreakerStatuses,
+    };
+  } catch (error) {
+    console.error('Tool stats error:', error);
+    return {
+      enabled: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
  * Get all system statistics
  */
 export function getAllStats() {
   const memory = getMemoryStats();
   const queue = getQueueStats();
+  const tools = getToolStats();
   
   // Get repository count
   // TODO: Import from repositories API when circular dependency is resolved
@@ -85,6 +132,7 @@ export function getAllStats() {
     memory,
     runtime: getRuntimeStats(),
     queue,
+    tools,
     timestamp: Date.now(),
   };
 }
@@ -132,6 +180,22 @@ export function handleQueueStatsRequest(_req: Request, res: Response) {
     console.error('Queue stats error:', error);
     res.status(500).json({
       error: 'Failed to fetch queue stats',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Express route handler for tool stats
+ */
+export function handleToolStatsRequest(_req: Request, res: Response) {
+  try {
+    const stats = getToolStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Tool stats error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch tool stats',
       message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
